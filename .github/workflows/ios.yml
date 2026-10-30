@@ -1,0 +1,65 @@
+name: iOS-App bauen
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build-ios:
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: schlafcoach-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Abhaengigkeiten installieren
+        run: npm install
+
+      - name: Tailwind-CSS kompilieren
+        run: npm run build:css
+
+      - name: iOS-Projekt erzeugen
+        run: |
+          npx cap add ios
+          npx cap sync ios
+
+      - name: Icon und Splash
+        run: npm run icons
+
+      - name: Nur Hochformat
+        run: |
+          PLIST=ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Delete :UISupportedInterfaceOrientations" "$PLIST" || true
+          /usr/libexec/PlistBuddy -c "Add :UISupportedInterfaceOrientations array" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :UISupportedInterfaceOrientations:0 string UIInterfaceOrientationPortrait" "$PLIST"
+
+      - name: App kompilieren (unsigniert)
+        run: |
+          if [ -d ios/App/App.xcworkspace ]; then
+            CONTAINER="-workspace ios/App/App.xcworkspace"
+          else
+            CONTAINER="-project ios/App/App.xcodeproj"
+          fi
+          xcodebuild $CONTAINER -scheme App -configuration Release -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" archive \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+
+      - name: IPA packen
+        run: |
+          cd "$RUNNER_TEMP"
+          mkdir -p Payload
+          cp -R App.xcarchive/Products/Applications/App.app Payload/
+          zip -qry Trainingscoach.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Trainingscoach-ipa
+          path: ${{ runner.temp }}/Trainingscoach.ipa
+          retention-days: 30
