@@ -1,0 +1,2769 @@
+<!DOCTYPE html>
+<html lang="de" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0f1015">
+  <meta name="description" content="Persönlicher Schlaf- und Trainingscoach für Hybrid-Training, Hevy Gym-Tracking, Lauf-Analyse und Erholung.">
+  <title>Schlaf- & Trainingscoach</title>
+  <!-- Tailwind wird beim App-Build lokal kompiliert (offline-fähig) -->
+  <link rel="stylesheet" href="app.css">
+  <style>
+    html, body {
+      background-color: #0f1015;
+      overscroll-behavior-y: none;
+    }
+    .pt-safe-header {
+      padding-top: calc(env(safe-area-inset-top, 0px) + 0.75rem);
+    }
+    #toast-banner {
+      top: calc(env(safe-area-inset-top, 0px) + 4rem);
+    }
+    * {
+      -webkit-tap-highlight-color: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", sans-serif;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .custom-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .pb-safe {
+      padding-bottom: env(safe-area-inset-bottom, 16px);
+    }
+  </style>
+</head>
+<body class="bg-iosDark text-gray-100 min-h-screen flex flex-col selection:bg-iosAccent selection:text-white">
+
+  <!-- Top App Header -->
+  <header class="sticky top-0 z-30 bg-iosDark/90 backdrop-blur-md border-b border-iosBorder px-4 pt-safe-header pb-2.5">
+    <div class="max-w-md mx-auto flex items-center justify-between">
+      <div>
+        <h1 class="text-lg font-extrabold tracking-tight text-white flex items-center gap-2">
+          <span>Schlaf- & Trainingscoach</span>
+        </h1>
+        <p id="header-subtitle" class="text-[11px] text-gray-400">Mo/Mi/Fr Gym (16 Sätze) · Knie-Schutz · Ziele auf 3–5 Wdh.</p>
+      </div>
+      <button onclick="openSettingsModal()" class="p-2 rounded-xl bg-iosCard border border-iosBorder text-gray-300 hover:text-white transition active:scale-95" title="Backup & Hevy-Import">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Segmented Navigation Pills -->
+    <div class="max-w-md mx-auto mt-3 flex space-x-1.5 overflow-x-auto custom-scrollbar text-xs font-medium py-0.5">
+      <button onclick="switchTab('overview')" id="tab-overview" class="tab-btn whitespace-nowrap px-3 py-1.5 rounded-full transition bg-white text-black font-semibold shadow-sm">Überblick</button>
+      <button onclick="switchTab('gymtracker')" id="tab-gymtracker" class="tab-btn whitespace-nowrap px-3 py-1.5 rounded-full transition bg-iosCard text-gray-300 hover:text-white border border-iosBorder">🏋️‍♂️ Gym-Tracker</button>
+      <button onclick="switchTab('calendar')" id="tab-calendar" class="tab-btn whitespace-nowrap px-3 py-1.5 rounded-full transition bg-iosCard text-gray-300 hover:text-white border border-iosBorder">Kalender & Log</button>
+      <button onclick="switchTab('goals')" id="tab-goals" class="tab-btn whitespace-nowrap px-3 py-1.5 rounded-full transition bg-iosCard text-gray-300 hover:text-white border border-iosBorder">Kraft & Analyse</button>
+      <button onclick="switchTab('checkin')" id="tab-checkin" class="tab-btn whitespace-nowrap px-3 py-1.5 rounded-full transition bg-iosCard text-gray-300 hover:text-white border border-iosBorder">Schlaf Check-in</button>
+      <button onclick="switchTab('history')" id="tab-history" class="tab-btn whitespace-nowrap px-3 py-1.5 rounded-full transition bg-iosCard text-gray-300 hover:text-white border border-iosBorder">Erholung</button>
+      <button onclick="switchTab('studies')" id="tab-studies" class="tab-btn whitespace-nowrap px-3 py-1.5 rounded-full transition bg-iosCard text-gray-300 hover:text-white border border-iosBorder">Studien & KI</button>
+    </div>
+  </header>
+
+  <!-- Toast Notification Banner -->
+  <div id="toast-banner" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 hidden bg-white text-black px-4 py-2 rounded-full shadow-xl text-xs font-bold border border-gray-300 transition-all"></div>
+
+  <!-- Main Scrollable App Container -->
+  <main class="max-w-md mx-auto w-full px-4 py-4 flex-1">
+
+    <!-- ==================== TAB 1: ÜBERBLICK ==================== -->
+    <section id="view-overview" class="space-y-4">
+      <!-- Morning Recovery Card -->
+      <div class="bg-iosCard rounded-2xl p-4 border border-iosBorder shadow-lg">
+        <div class="flex justify-between items-start">
+          <div>
+            <span id="ov-date-label" class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Erholung am Morgen</span>
+            <div class="flex items-baseline gap-2 mt-1">
+              <span id="ov-score-val" class="text-5xl font-black tracking-tight text-white">82</span>
+              <span class="text-sm text-gray-400 font-medium">von 100</span>
+            </div>
+            <div id="ov-score-badge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold mt-2 bg-recoveryGreen/20 text-recoveryGreen">
+              <span id="ov-score-dot" class="w-2 h-2 rounded-full bg-recoveryGreen"></span>
+              <span id="ov-score-text">hoch (Top erholt)</span>
+            </div>
+          </div>
+          <button onclick="switchTab('checkin')" class="text-xs px-3 py-1.5 rounded-xl bg-iosDark border border-iosBorder text-iosAccent font-semibold hover:border-iosAccent transition">
+            + Check-in
+          </button>
+        </div>
+
+        <!-- 4 Key Biometrics (inkl. Ruhepuls & niedrigster Schlafpuls getrennt) -->
+        <div class="grid grid-cols-4 gap-2 mt-4 pt-3 border-t border-iosBorder text-center">
+          <div class="bg-iosDark p-2 rounded-xl border border-iosBorder">
+            <span class="text-[9px] text-gray-400 uppercase font-semibold block">Schlaf</span>
+            <span id="ov-sleep-val" class="text-xs font-bold text-white mt-0.5 block">7.9 h</span>
+            <span id="ov-deep-val" class="text-[9px] text-gray-400 block">68m Tief</span>
+          </div>
+          <div class="bg-iosDark p-2 rounded-xl border border-iosBorder">
+            <span class="text-[9px] text-gray-400 uppercase font-semibold block">Ruhe-HF</span>
+            <span id="ov-rhr-val" class="text-xs font-bold text-iosAccent mt-0.5 block">49 bpm</span>
+            <span class="text-[9px] text-gray-400 block">Ziel &lt;50</span>
+          </div>
+          <div class="bg-iosDark p-2 rounded-xl border border-iosBorder">
+            <span class="text-[9px] text-gray-400 uppercase font-semibold block">Min. Schlaf</span>
+            <span id="ov-minhr-val" class="text-xs font-bold text-recoveryGreen mt-0.5 block">44 bpm</span>
+            <span id="ov-hrgap-val" class="text-[9px] text-gray-400 block">Δ 5 bpm</span>
+          </div>
+          <div class="bg-iosDark p-2 rounded-xl border border-iosBorder">
+            <span class="text-[9px] text-gray-400 uppercase font-semibold block">HRV</span>
+            <span id="ov-hrv-val" class="text-xs font-bold text-white mt-0.5 block">98 ms</span>
+            <span id="ov-legs-val" class="text-[9px] text-recoveryGreen block">Frisch</span>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-iosBorder">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-gray-300 mb-1">Die letzte Nacht & KI-Analyse</h3>
+          <p id="ov-analysis-text" class="text-xs text-gray-300 leading-relaxed"></p>
+        </div>
+      </div>
+
+      <!-- Today's Recommended Workout Card -->
+      <div class="bg-iosCard rounded-2xl p-4 border border-iosBorder shadow-lg">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-iosAccent" id="ov-plan-badge">Heutige Coach-Vorhersage</span>
+          <span id="ov-deviation-pill" class="hidden text-[10px] font-bold px-2 py-0.5 rounded-full bg-recoveryAmber/20 text-recoveryAmber">Plan-Anpassung aktiv</span>
+        </div>
+        <h2 id="ov-workout-title" class="text-base font-bold text-white">Gym Tag 1 (Mo): Oberkörper A</h2>
+        <p id="ov-workout-sub" class="text-xs text-gray-400 mt-0.5 mb-3">16 Arbeitssätze · Oberschenkel bleiben frisch</p>
+        <div id="ov-workout-items" class="space-y-1.5 text-xs text-gray-200 bg-iosDark p-3 rounded-xl border border-iosBorder"></div>
+
+        <!-- Dynamic Action Button -->
+        <div class="mt-4 flex gap-2">
+          <button onclick="openTodayInGymTracker()" class="flex-1 py-2.5 px-3 bg-iosAccent hover:bg-blue-600 rounded-xl text-xs font-semibold text-white transition active:scale-95 text-center shadow-md">
+            🏋️‍♂️ Im Gym-Tracker starten
+          </button>
+          <button onclick="openTodayInCalendar()" class="py-2.5 px-3 bg-iosCard border border-iosBorder hover:border-gray-500 rounded-xl text-xs font-semibold text-gray-200 transition active:scale-95">
+            Kalender / Lauf
+          </button>
+        </div>
+      </div>
+
+      <!-- Wochen-Rhythmus Übersicht (Mo, Mi, Fr Gym) -->
+      <div class="bg-iosCard rounded-2xl p-4 border border-iosBorder space-y-2.5">
+        <div class="flex justify-between items-center">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-gray-300">Dein Wochen-Rhythmus (Mo/Mi/Fr Gym)</h3>
+          <span class="text-[10px] text-recoveryGreen font-semibold">Knie-Schutz aktiv</span>
+        </div>
+        <div class="grid grid-cols-7 gap-1 text-center text-[10px]">
+          <div class="bg-iosDark p-1.5 rounded-lg border border-iosAccent/40"><div class="font-bold text-gray-400">Mo</div><div class="text-iosAccent font-bold mt-0.5">Gym 1</div></div>
+          <div class="bg-iosDark p-1.5 rounded-lg border border-iosBorder"><div class="font-bold text-gray-400">Di</div><div class="text-recoveryGreen font-bold mt-0.5">Lauf</div></div>
+          <div class="bg-iosDark p-1.5 rounded-lg border border-iosAccent/40"><div class="font-bold text-gray-400">Mi</div><div class="text-iosAccent font-bold mt-0.5">Gym 2</div></div>
+          <div class="bg-iosDark p-1.5 rounded-lg border border-recoveryRed/40"><div class="font-bold text-gray-400">Do</div><div class="text-recoveryRed font-bold mt-0.5">Rest</div></div>
+          <div class="bg-iosDark p-1.5 rounded-lg border border-iosAccent/40"><div class="font-bold text-gray-400">Fr</div><div class="text-iosAccent font-bold mt-0.5">Gym 3</div></div>
+          <div class="bg-iosDark p-1.5 rounded-lg border border-iosBorder"><div class="font-bold text-gray-400">Sa</div><div class="text-purple-400 font-bold mt-0.5">Bike Z2</div></div>
+          <div class="bg-iosDark p-1.5 rounded-lg border border-iosBorder"><div class="font-bold text-gray-400">So</div><div class="text-gray-400 font-bold mt-0.5">Frei/Z2</div></div>
+        </div>
+      </div>
+
+      <!-- Mini Kraft-Ziele Übersicht (3-5 Wdh.) -->
+      <div class="bg-iosCard rounded-2xl p-4 border border-iosBorder space-y-3">
+        <div class="flex justify-between items-center">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-gray-300">Kraft-Fortschritt (Ziele auf 3–5 Wdh.)</h3>
+          <button onclick="switchTab('goals')" class="text-[11px] text-iosAccent font-semibold">Graphen &rarr;</button>
+        </div>
+        <div>
+          <div class="flex justify-between text-xs mb-1 font-medium">
+            <span class="text-gray-300">Beinpresse 45° (auf 3–5 Wdh.)</span>
+            <span class="text-white font-bold"><span id="mini-current-lp">205</span> / 250 kg (×3–5)</span>
+          </div>
+          <div class="w-full bg-iosDark rounded-full h-2">
+            <div id="mini-bar-lp" class="bg-iosAccent h-2 rounded-full transition-all duration-500" style="width: 82%"></div>
+          </div>
+        </div>
+        <div>
+          <div class="flex justify-between text-xs mb-1 font-medium">
+            <span class="text-gray-300">Bankdrücken Äquivalent (auf 3–5 Wdh.)</span>
+            <span class="text-white font-bold"><span id="mini-current-bench">84</span> / 100 kg (×3–5)</span>
+          </div>
+          <div class="w-full bg-iosDark rounded-full h-2">
+            <div id="mini-bar-bench" class="bg-recoveryGreen h-2 rounded-full transition-all duration-500" style="width: 84%"></div>
+          </div>
+        </div>
+        <div>
+          <div class="flex justify-between text-xs mb-1 font-medium">
+            <span class="text-gray-300">Rudern Maschine (auf 3–5 Wdh.)</span>
+            <span class="text-white font-bold"><span id="mini-current-row">83</span> / 100 kg (×3–5)</span>
+          </div>
+          <div class="w-full bg-iosDark rounded-full h-2">
+            <div id="mini-bar-row" class="bg-amber-400 h-2 rounded-full transition-all duration-500" style="width: 83%"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 2: GYM-TRACKER (HEVY STYLE) ==================== -->
+    <section id="view-gymtracker" class="hidden space-y-4">
+      <div class="bg-iosCard rounded-2xl p-4 border border-iosBorder shadow-lg space-y-3">
+        <div class="flex items-center justify-between border-b border-iosBorder pb-3">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-iosAccent flex items-center gap-1">
+              <span class="w-2 h-2 rounded-full bg-iosAccent animate-ping"></span> Live Gym-Logger (Hevy Style)
+            </span>
+            <h2 class="text-base font-bold text-white mt-0.5" id="gt-workout-title">Gym Tag 1 (Mo): Oberkörper A</h2>
+          </div>
+          <input type="date" id="gt-date-picker" onchange="loadGymTrackerForDate(this.value)" class="bg-iosDark text-xs font-bold text-white border border-iosBorder rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-iosAccent">
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 text-center bg-iosDark p-2.5 rounded-xl border border-iosBorder">
+          <div onclick="toggleWorkoutTimer()" class="cursor-pointer">
+            <p class="text-[9px] text-gray-400 uppercase font-semibold">Dauer (Tippen)</p>
+            <p id="gt-timer-display" class="text-sm font-black text-iosAccent mt-0.5">00:00</p>
+          </div>
+          <div class="border-x border-iosBorder">
+            <p class="text-[9px] text-gray-400 uppercase font-semibold">Volumen</p>
+            <p id="gt-volume-display" class="text-sm font-black text-white mt-0.5">0 kg</p>
+          </div>
+          <div>
+            <p class="text-[9px] text-gray-400 uppercase font-semibold">Arbeitssätze</p>
+            <p id="gt-sets-display" class="text-sm font-black text-recoveryGreen mt-0.5">0 / 16 ✓</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 pt-1">
+          <span class="text-[11px] text-gray-400 font-medium whitespace-nowrap">Split-Vorlage:</span>
+          <select id="gt-template-select" onchange="switchGymTrackerTemplate(this.value)" class="flex-1 bg-iosDark border border-iosBorder rounded-xl px-2.5 py-1.5 text-xs text-white font-semibold focus:outline-none focus:border-iosAccent">
+            <option value="gym1">🏋️‍♂️ Gym Tag 1 (Mo): Oberkörper A + Waden</option>
+            <option value="gym2">🦵 Gym Tag 2 (Mi): Beinpresse 250kg + OK B</option>
+            <option value="gym3">⚡ Gym Tag 3 (Fr): Ganzkörper 2-Satz-System</option>
+            <option value="custom">✨ Freies Training / Eigene Auswahl</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Dynamische Übungs-Karten -->
+      <div id="gt-exercises-container" class="space-y-3.5"></div>
+
+      <!-- Übung hinzufügen & Workout Speichern -->
+      <div class="space-y-2.5 pt-1">
+        <button type="button" onclick="openAddExerciseModal()" class="w-full py-3 bg-iosCard hover:bg-iosCardHover border border-dashed border-iosAccent/60 text-iosAccent font-bold rounded-2xl text-xs flex items-center justify-center gap-1.5 transition active:scale-95">
+          <span class="text-base leading-none">+</span> Weitere Übung zum Training hinzufügen
+        </button>
+
+        <div class="bg-iosCard rounded-2xl p-3.5 border border-iosBorder">
+          <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1">Workout-Notiz (Optional)</label>
+          <input type="text" id="gt-notes-input" placeholder="z.B. Guter Pump auf der Schrägbank, Knie schmerzfrei..." class="w-full bg-iosDark border border-iosBorder rounded-xl p-2 text-xs text-white focus:outline-none focus:border-iosAccent">
+        </div>
+
+        <button type="button" onclick="saveGymTrackerWorkout()" class="w-full py-3.5 bg-recoveryGreen text-black font-black rounded-2xl text-sm shadow-lg transition hover:opacity-95 active:scale-95 flex items-center justify-center gap-2">
+          <span>✓ Workout beenden & in Statistik speichern</span>
+        </button>
+      </div>
+
+      <!-- Hevy CSV Import Box -->
+      <div class="bg-iosCard rounded-2xl p-4 border border-iosBorder space-y-2.5 mt-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-purple-400">Daten-Synchronisation</span>
+            <h3 class="text-sm font-bold text-white">Hevy App CSV-Daten importieren</h3>
+          </div>
+          <span class="text-lg">📲</span>
+        </div>
+        <p class="text-[11px] text-gray-400 leading-relaxed">
+          Exportiere in deiner Hevy-App unter <em>Profil &rarr; Einstellungen &rarr; Daten exportieren</em> deine <code>workout_data.csv</code>. Lade sie hier hoch, um vergangene Trainings, Sätze und Bestwerte automatisch in deinen Kalender und deine Kraft-Graphen zu übernehmen!
+        </p>
+        <input type="file" id="hevy-csv-input" accept=".csv,text/csv" onchange="handleHevyCSVUpload(event)" class="w-full text-xs text-gray-300 bg-iosDark border border-iosBorder rounded-xl p-2 file:mr-3 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-iosAccent file:text-white">
+        <div id="hevy-import-status" class="hidden text-xs p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300"></div>
+      </div>
+    </section>
+
+    <!-- ==================== MODAL: ÜBUNG HINZUFÜGEN ==================== -->
+    <div id="add-exercise-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-end sm:items-center justify-center p-0 sm:p-4">
+      <div class="bg-iosCard border-t sm:border border-iosBorder w-full max-w-md rounded-t-3xl sm:rounded-2xl p-5 space-y-3 max-h-[85vh] flex flex-col">
+        <div class="flex justify-between items-center pb-2 border-b border-iosBorder">
+          <div>
+            <h3 class="text-sm font-bold text-white">Übung zum Workout hinzufügen</h3>
+            <p class="text-[11px] text-gray-400">Wähle aus deinem erweiterten Katalog oder erstelle eine eigene</p>
+          </div>
+          <button onclick="closeAddExerciseModal()" class="text-gray-400 hover:text-white text-xl font-bold px-2">&times;</button>
+        </div>
+
+        <input type="text" id="exercise-search-input" oninput="renderExercisePickerList()" placeholder="Übung oder Muskel suchen (z.B. Brust, Butterfly, Arme)..." class="w-full bg-iosDark border border-iosBorder rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-iosAccent">
+
+        <div class="flex gap-1.5 overflow-x-auto custom-scrollbar py-1 text-[11px]">
+          <button onclick="filterExerciseModalCategory('Alle')" class="px-2.5 py-1 rounded-lg bg-iosDark border border-iosBorder text-gray-200 whitespace-nowrap">Alle</button>
+          <button onclick="filterExerciseModalCategory('Brust')" class="px-2.5 py-1 rounded-lg bg-iosDark border border-iosBorder text-gray-200 whitespace-nowrap">Brust</button>
+          <button onclick="filterExerciseModalCategory('Rücken')" class="px-2.5 py-1 rounded-lg bg-iosDark border border-iosBorder text-gray-200 whitespace-nowrap">Rücken</button>
+          <button onclick="filterExerciseModalCategory('Beine')" class="px-2.5 py-1 rounded-lg bg-iosDark border border-iosBorder text-gray-200 whitespace-nowrap">Beine</button>
+          <button onclick="filterExerciseModalCategory('Schultern')" class="px-2.5 py-1 rounded-lg bg-iosDark border border-iosBorder text-gray-200 whitespace-nowrap">Schultern</button>
+          <button onclick="filterExerciseModalCategory('Arme')" class="px-2.5 py-1 rounded-lg bg-iosDark border border-iosBorder text-gray-200 whitespace-nowrap">Arme</button>
+          <button onclick="filterExerciseModalCategory('Core')" class="px-2.5 py-1 rounded-lg bg-iosDark border border-iosBorder text-gray-200 whitespace-nowrap">Core</button>
+        </div>
+
+        <div id="exercise-picker-list" class="flex-1 overflow-y-auto space-y-1.5 pr-1"></div>
+
+        <div class="pt-2 border-t border-iosBorder flex gap-2">
+          <input type="text" id="custom-exercise-name" placeholder="Eigene Übung (z.B. Pendlay Rows)..." class="flex-1 bg-iosDark border border-iosBorder rounded-xl px-3 py-2 text-xs text-white">
+          <button onclick="addCustomExerciseToCatalog()" class="px-3 py-2 bg-iosAccent text-white rounded-xl text-xs font-bold whitespace-nowrap">+ Anlegen</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 3: KALENDER & WORKOUT LOGGING ==================== -->
+    <section id="view-calendar" class="hidden space-y-4">
+      <div class="bg-iosCard rounded-2xl p-4 border border-iosBorder shadow-lg">
+        <div class="flex items-center justify-between mb-3">
+          <button onclick="changeCalendarMonth(-1)" class="p-1.5 rounded-xl bg-iosDark border border-iosBorder text-gray-300 hover:text-white">&larr;</button>
+          <h2 id="cal-month-label" class="text-sm font-bold text-white">Oktober 2026</h2>
+          <button onclick="changeCalendarMonth(1)" class="p-1.5 rounded-xl bg-iosDark border border-iosBorder text-gray-300 hover:text-white">&rarr;</button>
+        </div>
+        <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-gray-400 mb-1.5">
+          <div>Mo</div><div>Di</div><div>Mi</div><div>Do</div><div>Fr</div><div>Sa</div><div>So</div>
+        </div>
+        <div id="calendar-grid" class="grid grid-cols-7 gap-1.5 text-center"></div>
+        <div class="flex flex-wrap gap-3 justify-center mt-3 pt-2.5 border-t border-iosBorder text-[10px] text-gray-400">
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-iosAccent"></span> Gym</span>
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-recoveryGreen"></span> Lauf</span>
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-purple-400"></span> Bike Z2</span>
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-400"></span> Double-Day</span>
+        </div>
+      </div>
+
+      <!-- Selected Day Editor -->
+      <div class="bg-iosCard rounded-2xl p-4 border border-iosBorder shadow-lg space-y-3">
+        <div class="flex justify-between items-center border-b border-iosBorder pb-2.5">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-iosAccent">Tag auswählen & bearbeiten</span>
+            <h3 id="cal-selected-date-title" class="text-sm font-bold text-white">Freitag, 30.10.2026</h3>
+          </div>
+          <span id="cal-logged-badge" class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-iosDark text-gray-400">Offen</span>
+        </div>
+
+        <!-- Coach Suggestion Box for Selected Date -->
+        <div class="p-3 rounded-xl bg-iosDark border border-iosBorder text-xs space-y-1">
+          <div class="font-bold text-iosAccent" id="cal-coach-suggestion-title">Coach-Vorschlag für diesen Tag:</div>
+          <p id="cal-coach-suggestion-text" class="text-gray-300 text-[11px] leading-relaxed"></p>
+        </div>
+
+        <!-- 1. Haupt-Einheit Auswahl -->
+        <div>
+          <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1">1. Haupt-Training an diesem Tag</label>
+          <select id="workout-type-select" onchange="renderWorkoutEditorFields()" class="w-full bg-iosDark border border-iosBorder rounded-xl p-2.5 text-xs font-bold text-white focus:outline-none focus:border-iosAccent">
+            <option value="gym1">🏋️‍♂️ Gym Tag 1 (Mo): Oberkörper A + Waden (16 Sätze)</option>
+            <option value="gym2">🦵 Gym Tag 2 (Mi): Beinpresse 250kg Fokus + OK B (16 Sätze)</option>
+            <option value="gym3">⚡ Gym Tag 3 (Fr): Ganzkörper 2-Satz-System (16 Sätze)</option>
+            <option value="run">🏃‍♂️ Laufeinheit (Variable Distanz, Pace & Max-HF)</option>
+            <option value="bike">🚴‍♂️ Indoor-Bike (Zone 2 Knie-Schutz)</option>
+            <option value="rest">🛑 Ruhetag / Regeneration</option>
+          </select>
+        </div>
+
+        <!-- Dynamische Felder für Gym, Lauf oder Bike -->
+        <div id="workout-editor-fields" class="space-y-2"></div>
+
+        <!-- 2. Optionale Zweit-Einheit (Double-Day Logik & Interferenz-Prüfung) -->
+        <div class="pt-3 border-t border-iosBorder space-y-2.5">
+          <div class="flex items-center justify-between">
+            <label class="text-[10px] font-bold uppercase text-purple-400">2. Optionale Zweit-Einheit (Double-Day)</label>
+            <span class="text-[10px] text-gray-400">Interferenz-Analyse</span>
+          </div>
+          <select id="second-workout-select" onchange="toggleSecondUnitFields()" class="w-full bg-iosDark border border-iosBorder rounded-xl p-2 text-xs font-semibold text-white">
+            <option value="none">— Keine 2. Einheit an diesem Tag —</option>
+            <option value="bike">🚴‍♂️ + Indoor-Bike Zone 2 (Gelenkschonend)</option>
+            <option value="run">🏃‍♂️ + Laufeinheit (Koppel-/Zweittraining)</option>
+          </select>
+
+          <div id="second-unit-fields" class="hidden bg-iosDark p-3 rounded-xl border border-purple-500/30 space-y-2.5">
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="text-[10px] text-gray-400 block mb-1">Dauer (Min)</label>
+                <input type="number" id="sec-duration-input" value="45" step="5" oninput="evaluateDoubleDayImpact()" class="w-full bg-iosCard border border-iosBorder rounded-lg p-1.5 text-xs font-bold text-white">
+              </div>
+              <div>
+                <label class="text-[10px] text-gray-400 block mb-1">Ø / Max Puls</label>
+                <div class="flex gap-1">
+                  <input type="number" id="sec-hr-input" value="135" placeholder="Ø" oninput="evaluateDoubleDayImpact()" class="w-1/2 bg-iosCard border border-iosBorder rounded-lg p-1.5 text-xs font-bold text-white text-center">
+                  <input type="number" id="sec-maxhr-input" value="152" placeholder="Max" class="w-1/2 bg-iosCard border border-iosBorder rounded-lg p-1.5 text-xs font-bold text-recoveryAmber text-center">
+                </div>
+              </div>
+              <div>
+                <label class="text-[10px] text-gray-400 block mb-1">Pause zw. Einheiten</label>
+                <select id="sec-gap-hours" onchange="evaluateDoubleDayImpact()" class="w-full bg-iosCard border border-iosBorder rounded-lg p-1.5 text-xs font-bold text-purple-300">
+                  <option value="6">≥ 6 Std. (Ideal)</option>
+                  <option value="4">4–5 Std. (Gut)</option>
+                  <option value="2">1–3 Std. (Kurz)</option>
+                  <option value="0">Direkt im Anschluss</option>
+                </select>
+              </div>
+            </div>
+            <div id="double-day-impact-box" class="text-[11px] leading-relaxed p-2.5 rounded-lg bg-iosCard border border-iosBorder text-gray-200"></div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1">Notizen zum Training</label>
+          <input type="text" id="workout-notes-input" placeholder="z.B. Beinpresse sehr stabil, gute Pace..." class="w-full bg-iosDark border border-iosBorder rounded-xl p-2 text-xs text-white">
+        </div>
+
+        <div class="flex gap-2 pt-1">
+          <button type="button" onclick="saveWorkoutForSelectedDate()" class="flex-1 py-3 bg-iosAccent hover:bg-blue-600 text-white font-bold rounded-xl text-xs shadow-md transition active:scale-95">
+            Training speichern & analysieren
+          </button>
+          <button type="button" id="delete-workout-btn" onclick="deleteWorkoutForSelectedDate()" class="hidden px-3 py-3 bg-recoveryRed/20 border border-recoveryRed/40 text-recoveryRed font-bold rounded-xl text-xs">
+            Löschen
+          </button>
+        </div>
+
+        <!-- Sofort-Vergleich mit älteren Daten -->
+        <div id="workout-comparison-box" class="hidden mt-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-1">
+          <h4 class="text-xs font-bold text-recoveryGreen">📈 Vergleich mit deinen älteren Trainingsdaten</h4>
+          <div id="workout-comparison-content" class="text-[11px] text-gray-200 space-y-1"></div>
+        </div>
+      </div>
+
+      <!-- Chronologische Liste aller geloggten Trainings -->
+      <div class="bg-iosCard rounded-2xl p-4 border border-iosBorder space-y-2.5">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-gray-300">Zuletzt geloggte Einheiten (Antippen zum Bearbeiten)</h3>
+        <div id="logged-workouts-list" class="space-y-2"></div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 4: KRAFT & GRAPHISCHE ANALYSE ==================== -->
+    <section id="view-goals" class="hidden space-y-4">
+      <div class="bg-iosCard rounded-2xl p-4 border border-iosBorder shadow-lg space-y-3">
+        <div class="flex justify-between items-center">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-iosAccent">Grafische Leistungsverfolgung</span>
+            <h2 class="text-base font-bold text-white">Trend-Kurven & 3–5 Wdh. Analyse</h2>
+          </div>
+          <span id="chart-target-badge" class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-recoveryGreen/20 text-recoveryGreen">Ziel: 250 kg</span>
+        </div>
+
+        <select id="exercise-trend-select" onchange="renderExerciseHistoryComparison()" class="w-full bg-iosDark border border-iosBorder rounded-xl p-2.5 text-xs font-bold text-white focus:outline-none focus:border-iosAccent"></select>
+        <p id="chart-y-label" class="text-[11px] text-gray-400">Berechnetes 4RM (Arbeitsgewicht für 3–5 saubere Wiederholungen)</p>
+
+        <!-- Interactive SVG Chart Container -->
+        <div id="svg-chart-container" class="w-full h-48 bg-iosDark rounded-xl border border-iosBorder p-2 flex items-center justify-center relative overflow-hidden"></div>
+
+        <!-- Text Summary of Trend -->
+        <div id="exercise-trend-summary" class="p-3 rounded-xl bg-iosDark border border-iosBorder text-xs text-gray-200 leading-relaxed"></div>
+
+        <!-- Historical Entries Table -->
+        <div id="exercise-history-table" class="space-y-1.5 max-h-60 overflow-y-auto pr-1"></div>
+      </div>
+
+      <!-- Alle 5 Hauptziele im Detail -->
+      <div class="bg-iosCard rounded-2xl p-4 border border-iosBorder space-y-3.5">
+        <h3 class="text-sm font-bold text-white">Status deiner 5 Kernziele (auf 3–5 Wdh. geeicht)</h3>
+        <div id="goals-detailed-bars" class="space-y-3.5"></div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 5: SCHLAF CHECK-IN ==================== -->
+    <section id="view-checkin" class="hidden space-y-4">
+      <div class="bg-iosCard rounded-2xl p-4 border border-iosBorder shadow-lg space-y-3.5">
+        <div>
+          <span class="text-[10px] font-bold uppercase tracking-wider text-iosAccent">Tägliches Biometrie-Update</span>
+          <h2 class="text-base font-bold text-white">Morgen-Check-in (Ruhepuls & Schlafpuls getrennt)</h2>
+          <p class="text-xs text-gray-400 mt-0.5">Sowohl dein Tages-Ruhepuls (RHR) als auch dein niedrigster nächtlicher Schlafpuls fließen in deine Erholungs- und Trainingsprognose ein.</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1">Datum</label>
+            <input type="date" id="checkin-date-picker" class="w-full bg-iosDark border border-iosBorder rounded-xl p-2.5 text-xs font-bold text-white">
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1">Schlafdauer (Std)</label>
+            <input type="number" step="0.1" id="in-sleep" value="7.9" class="w-full bg-iosDark border border-iosBorder rounded-xl p-2.5 text-xs font-bold text-white">
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1">Tiefschlaf (Min)</label>
+            <input type="number" step="1" id="in-deep" value="68" class="w-full bg-iosDark border border-iosBorder rounded-xl p-2.5 text-xs font-bold text-white">
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-iosAccent mb-1">Ruhepuls / RHR (bpm)</label>
+            <input type="number" step="1" id="in-rhr" value="49" class="w-full bg-iosDark border border-iosAccent/50 rounded-xl p-2.5 text-xs font-bold text-white">
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-recoveryGreen mb-1">Niedrigster Schlafpuls (bpm)</label>
+            <input type="number" step="1" id="in-minhr" value="44" class="w-full bg-iosDark border border-recoveryGreen/50 rounded-xl p-2.5 text-xs font-bold text-recoveryGreen">
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1">HRV (ms)</label>
+            <input type="number" step="1" id="in-hrv" value="98" class="w-full bg-iosDark border border-iosBorder rounded-xl p-2.5 text-xs font-bold text-white">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1">Knie- & Bein-Status heute Morgen</label>
+          <select id="in-legs" class="w-full bg-iosDark border border-iosBorder rounded-xl p-2.5 text-xs font-bold text-white">
+            <option value="frisch">🦵 Frisch & schmerzfrei (100 % belastbar)</option>
+            <option value="schwer">⚡ Muskulär etwas schwer / müde</option>
+            <option value="knie">⚠️ Knie leicht gereizt (Knie-Schutz-Modus aktivieren!)</option>
+          </select>
+        </div>
+
+        <button type="button" onclick="saveMorningCheckin()" class="w-full py-3.5 bg-iosAccent hover:bg-blue-600 text-white font-bold rounded-xl text-xs shadow-lg transition active:scale-95">
+          Check-in speichern & Tages-Prognose berechnen
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 6: ERHOLUNG (BAR CHART) ==================== -->
+    <section id="view-history" class="hidden space-y-4">
+      <div class="bg-iosCard rounded-2xl p-4 border border-iosBorder shadow-lg">
+        <h2 class="text-base font-bold text-white">Erholungswert am Morgen</h2>
+        <p class="text-xs text-gray-400 mt-0.5 mb-3">0 bis 100, gemessen an deinen eigenen Nächten (HRV, Tages-Ruhepuls, niedrigster Schlafpuls & Tiefschlaf).</p>
+        <div class="flex gap-3 text-[11px] text-gray-400 mb-3">
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-recoveryGreen"></span> hoch (ab 67)</span>
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-recoveryAmber"></span> mittel (34–66)</span>
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-recoveryRed"></span> niedrig (&lt;34)</span>
+        </div>
+        <div id="recovery-bar-chart" class="h-36 flex items-end gap-1.5 pt-4 pb-1 border-b border-iosBorder"></div>
+      </div>
+
+      <div class="bg-iosCard rounded-2xl p-4 border border-iosBorder space-y-2">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-gray-300">Gespeicherte Nächte (inkl. RHR & Min. Schlafpuls)</h3>
+        <div id="sleep-history-list" class="space-y-2"></div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 7: STUDIEN & LIVE PUBMED SUCHE ==================== -->
+    <section id="view-studies" class="hidden space-y-4">
+      <div class="bg-iosCard rounded-2xl p-4 border border-iosBorder shadow-lg space-y-3">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-iosAccent">Evidenzbasierte Trainingssteuerung</span>
+        <h2 class="text-base font-bold text-white">Studien zu deinem Hybrid-Setup & Live-Suche</h2>
+        <p class="text-xs text-gray-400">Kuratierte sportwissenschaftliche Arbeiten exakt zu deinem 2-Satz-Hypertrophie-System, Double-Days und Knie-Schutz durch Radfahren.</p>
+
+        <div class="flex gap-2">
+          <input type="text" id="study-search-input" oninput="filterCuratedStudies(this.value)" placeholder="Studien filtern oder auf PubMed suchen..." class="flex-1 bg-iosDark border border-iosBorder rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-iosAccent">
+          <button onclick="searchPubMedLive()" class="px-3 py-2 bg-iosAccent text-white font-bold rounded-xl text-xs whitespace-nowrap">PubMed Live</button>
+        </div>
+
+        <div id="pubmed-live-results" class="hidden space-y-2 pt-2 border-t border-iosBorder"></div>
+      </div>
+
+      <div id="curated-studies-list" class="space-y-3"></div>
+    </section>
+
+  </main>
+
+  <!-- ==================== MODAL: SETTINGS / BACKUP / HEVY IMPORT ==================== -->
+  <div id="settings-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-iosCard border border-iosBorder w-full max-w-sm rounded-2xl p-5 space-y-4 max-h-[88vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-iosBorder pb-2.5">
+        <h3 class="text-sm font-bold text-white">Backup & Hevy-Import</h3>
+        <button onclick="closeSettingsModal()" class="text-gray-400 hover:text-white text-lg font-bold">&times;</button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <p class="text-gray-400 leading-relaxed">Sichere deine gesamten Schlaf-, Kalender- und Gym-Tracker-Daten als JSON-Datei in iCloud Drive oder der iOS Dateien-App.</p>
+        <button onclick="exportBackupJSON()" class="w-full py-2.5 bg-iosAccent text-white font-bold rounded-xl text-xs shadow">
+          📥 Komplettes Backup exportieren (.json)
+        </button>
+        <div class="pt-2 border-t border-iosBorder">
+          <label class="block text-[11px] text-gray-400 mb-1">Backup-Datei (.json) wiederherstellen:</label>
+          <input type="file" id="import-backup-input" accept=".json" onchange="importBackupFile(event)" class="w-full text-xs text-gray-300 bg-iosDark border border-iosBorder rounded-xl p-2">
+        </div>
+        <div class="pt-2 border-t border-iosBorder">
+          <label class="block text-[11px] text-purple-400 font-bold mb-1">📲 Hevy App (.csv) Trainings-Import:</label>
+          <input type="file" accept=".csv,text/csv" onchange="handleHevyCSVUpload(event)" class="w-full text-xs text-gray-300 bg-iosDark border border-iosBorder rounded-xl p-2">
+        </div>
+        <button onclick="resetToSampleData()" class="w-full py-2 mt-2 bg-recoveryRed/15 border border-recoveryRed/30 rounded-xl text-xs font-semibold text-recoveryRed hover:bg-recoveryRed/25">
+          Auf Demo-Daten zurücksetzen
+        </button>
+      </div>
+      <button onclick="closeSettingsModal()" class="w-full py-2.5 bg-white text-black font-bold rounded-xl text-xs">
+        Fertig
+      </button>
+    </div>
+  </div>
+
+  <!-- iOS Bottom Tab Bar -->
+  <nav class="sticky bottom-0 z-40 bg-iosDark/95 backdrop-blur-md border-t border-iosBorder pb-safe pt-2 px-2">
+    <div class="max-w-md mx-auto flex justify-around items-center text-[10px]">
+      <button onclick="switchTab('overview')" class="nav-item flex flex-col items-center gap-1 text-white font-medium focus:outline-none" data-tab="overview">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        <span>Heute</span>
+      </button>
+      <button onclick="switchTab('gymtracker')" class="nav-item flex flex-col items-center gap-1 text-gray-400 font-medium focus:outline-none" data-tab="gymtracker">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h2m12 0h2M6 7v10M18 7v10M8 7h8v10H8V7z"/></svg>
+        <span>Gym-Tracker</span>
+      </button>
+      <button onclick="switchTab('calendar')" class="nav-item flex flex-col items-center gap-1 text-gray-400 font-medium focus:outline-none" data-tab="calendar">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <span>Kalender</span>
+      </button>
+      <button onclick="switchTab('goals')" class="nav-item flex flex-col items-center gap-1 text-gray-400 font-medium focus:outline-none" data-tab="goals">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+        <span>Analyse</span>
+      </button>
+      <button onclick="switchTab('checkin')" class="nav-item flex flex-col items-center gap-1 text-gray-400 font-medium focus:outline-none" data-tab="checkin">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        <span>Check-in</span>
+      </button>
+      <button onclick="switchTab('studies')" class="nav-item flex flex-col items-center gap-1 text-gray-400 font-medium focus:outline-none" data-tab="studies">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        <span>Studien</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ==================== JAVASCRIPT LOGIC ==================== -->
+  <script>
+    const STORAGE_KEY_SLEEP = 'coach_sleep_v3';
+    const STORAGE_KEY_WORKOUTS = 'coach_workouts_v3';
+    const STORAGE_KEY_CUSTOM_EX = 'coach_custom_ex_v3';
+
+    // Zentraler Übungskatalog: Deine Kernübungen + empfohlene Zusatz-Übungen
+    const EXERCISE_CATALOG = {
+      isoBench: { id: 'isoBench', name: 'Isolat. Bankdrückmaschine', category: 'Brust', defaultSets: 3, defaultKg: 87.5, defaultReps: 6, target4RM: 118 },
+      incBench: { id: 'incBench', name: 'KH-Schrägbankdrücken (pro KH)', category: 'Brust', defaultSets: 2, defaultKg: 32, defaultReps: 7, target4RM: 38 },
+      row: { id: 'row', name: 'Rudern eng / Maschine', category: 'Rücken', defaultSets: 3, defaultKg: 82.5, defaultReps: 7, target4RM: 100 },
+      rowWide: { id: 'rowWide', name: 'Rudern breit (Oberer Rücken)', category: 'Rücken', defaultSets: 2, defaultKg: 70, defaultReps: 10, target4RM: 85 },
+      lat: { id: 'lat', name: 'Latzug (breit / neutral)', category: 'Rücken', defaultSets: 2, defaultKg: 72.5, defaultReps: 9, target4RM: 85 },
+      legPress: { id: 'legPress', name: 'Beinpresse 45°', category: 'Beine', defaultSets: 3, defaultKg: 195, defaultReps: 7, target4RM: 250 },
+      rdl: { id: 'rdl', name: 'Rumänisches Kreuzheben / Beinbeuger', category: 'Beine', defaultSets: 3, defaultKg: 90, defaultReps: 8, target4RM: 110 },
+      latRaise: { id: 'latRaise', name: 'Seitheben (Kabel / KH)', category: 'Schultern', defaultSets: 2, defaultKg: 12.5, defaultReps: 14 },
+      triceps: { id: 'triceps', name: 'Trizepsdrücken am Kabel', category: 'Arme', defaultSets: 2, defaultKg: 35, defaultReps: 11 },
+      biceps: { id: 'biceps', name: 'Bizeps-Curls (Schrägbank / Kabel)', category: 'Arme', defaultSets: 2, defaultKg: 16, defaultReps: 11 },
+      armsSuper: { id: 'armsSuper', name: 'Supersatz: Trizeps + Hammer-Curls', category: 'Arme', defaultSets: 2, defaultKg: 32.5, defaultReps: 11 },
+      calves: { id: 'calves', name: 'Wadenheben (Stehend / Beinpresse)', category: 'Beine', defaultSets: 2, defaultKg: 110, defaultReps: 14 },
+
+      // Empfohlene Zusatz-Übungen für spontane Lust im Gym
+      flatBenchBB: { id: 'flatBenchBB', name: 'Bankdrücken frei (Langhantel)', category: 'Brust', defaultSets: 3, defaultKg: 80, defaultReps: 5, target4RM: 100 },
+      pecDeck: { id: 'pecDeck', name: 'Butterfly / Cable Flys', category: 'Brust', defaultSets: 2, defaultKg: 65, defaultReps: 12 },
+      dips: { id: 'dips', name: 'Dips (Brust / Trizeps)', category: 'Brust', defaultSets: 2, defaultKg: 10, defaultReps: 10 },
+      pullUps: { id: 'pullUps', name: 'Klimmzüge (mit/ohne Zusatzgewicht)', category: 'Rücken', defaultSets: 2, defaultKg: 0, defaultReps: 10 },
+      tbarRow: { id: 'tbarRow', name: 'T-Bar Rudern (Brustgestützt)', category: 'Rücken', defaultSets: 2, defaultKg: 65, defaultReps: 8 },
+      facePulls: { id: 'facePulls', name: 'Face Pulls / Reverse Flys (Hintere Schulter)', category: 'Schultern', defaultSets: 2, defaultKg: 25, defaultReps: 15 },
+      shoulderPress: { id: 'shoulderPress', name: 'Schulterdrücken (Maschine / KH)', category: 'Schultern', defaultSets: 2, defaultKg: 26, defaultReps: 8 },
+      overheadTriceps: { id: 'overheadTriceps', name: 'Überkopf-Trizepsdrücken (Kabel)', category: 'Arme', defaultSets: 2, defaultKg: 30, defaultReps: 12 },
+      hammerCurls: { id: 'hammerCurls', name: 'Hammer-Curls (Kurzhantel / Seil)', category: 'Arme', defaultSets: 2, defaultKg: 18, defaultReps: 10 },
+      preacherCurls: { id: 'preacherCurls', name: 'Preacher Curls (Scott-Bank)', category: 'Arme', defaultSets: 2, defaultKg: 32.5, defaultReps: 10 },
+      legCurlSeated: { id: 'legCurlSeated', name: 'Beinbeuger sitzend (isoliert)', category: 'Beine', defaultSets: 2, defaultKg: 65, defaultReps: 11 },
+      legExtension: { id: 'legExtension', name: 'Beinstrecker Maschine (Quads)', category: 'Beine', defaultSets: 2, defaultKg: 70, defaultReps: 12 },
+      bulgarianSplits: { id: 'bulgarianSplits', name: 'Bulgarian Split Squats (KH)', category: 'Beine', defaultSets: 2, defaultKg: 20, defaultReps: 9 },
+      cableCrunch: { id: 'cableCrunch', name: 'Bauchmaschine / Cable Crunch', category: 'Core', defaultSets: 2, defaultKg: 45, defaultReps: 15 },
+      legRaises: { id: 'legRaises', name: 'Hängendes Beinheben (Core)', category: 'Core', defaultSets: 2, defaultKg: 0, defaultReps: 12 }
+    };
+
+    // Workout Templates für Mo, Mi, Fr (jeweils exakt 16 Arbeitssätze)
+    const WORKOUT_TEMPLATES = {
+      gym1: {
+        name: 'Gym Tag 1 (Mo): Oberkörper A + Waden',
+        badge: '16 Sätze',
+        exercises: [
+          { id: 'isoBench', name: '1. Isolat. Bankdrückmaschine (Schwer)', sets: '3 × 5–8', count: 3, defaultKg: 87.5, defaultReps: 6 },
+          { id: 'incBench', name: '2. KH-Schrägbankdrücken (kg pro Hantel)', sets: '2 × 8–10', count: 2, defaultKg: 30, defaultReps: 8 },
+          { id: 'row', name: '3. Rudern eng / Maschine (Schwer)', sets: '3 × 6–8', count: 3, defaultKg: 80, defaultReps: 7 },
+          { id: 'lat', name: '4. Latzug breit', sets: '2 × 8–10', count: 2, defaultKg: 70, defaultReps: 9 },
+          { id: 'latRaise', name: '5. Seitheben (Kabel / KH)', sets: '2 × 12–15', count: 2, defaultKg: 12.5, defaultReps: 13 },
+          { id: 'triceps', name: '6. Trizepsdrücken am Kabel', sets: '2 × 10–12', count: 2, defaultKg: 35, defaultReps: 11 },
+          { id: 'calves', name: '7. Wadenheben (Achillessehnen-Schutz)', sets: '2 × 12–15', count: 2, defaultKg: 110, defaultReps: 14 }
+        ]
+      },
+      gym2: {
+        name: 'Gym Tag 2 (Mi): Beinpresse 250kg Fokus + OK B',
+        badge: '16 Sätze',
+        exercises: [
+          { id: 'legPress', name: '1. Beinpresse 45° (Schwer – Einzige Quad-Übung)', sets: '3 × 6–8', count: 3, defaultKg: 195, defaultReps: 7 },
+          { id: 'rdl', name: '2. Rumänisches Kreuzheben / Beinbeuger', sets: '3 × 8–10', count: 3, defaultKg: 90, defaultReps: 8 },
+          { id: 'isoBench', name: '3. Isolaterale Bankdrückmaschine', sets: '2 × 8–10', count: 2, defaultKg: 82.5, defaultReps: 9 },
+          { id: 'incBench', name: '4. KH-Schrägbankdrücken (kg pro Hantel)', sets: '2 × 8–10', count: 2, defaultKg: 28, defaultReps: 9 },
+          { id: 'lat', name: '5. Latzug (neutraler / enger Griff)', sets: '2 × 8–10', count: 2, defaultKg: 72.5, defaultReps: 9 },
+          { id: 'rowWide', name: '6. Rudern breit (Oberer Rücken)', sets: '2 × 10–12', count: 2, defaultKg: 70, defaultReps: 10 },
+          { id: 'biceps', name: '7. Bizeps-Curls (Schrägbank / Kabel)', sets: '2 × 10–12', count: 2, defaultKg: 16, defaultReps: 11 }
+        ]
+      },
+      gym3: {
+        name: 'Gym Tag 3 (Fr): Ganzkörper 2-Satz-System',
+        badge: '16 Sätze',
+        exercises: [
+          { id: 'incBench', name: '1. KH-Schrägbankdrücken (Schwer)', sets: '2 × 6–8', count: 2, defaultKg: 32, defaultReps: 7 },
+          { id: 'isoBench', name: '2. Isolaterale Bankdrückmaschine', sets: '2 × 10–12', count: 2, defaultKg: 80, defaultReps: 10 },
+          { id: 'row', name: '3. Rudern (100-kg-Zielübung)', sets: '2 × 6–8', count: 2, defaultKg: 82.5, defaultReps: 7 },
+          { id: 'lat', name: '4. Latzug kontrolliert', sets: '2 × 10–12', count: 2, defaultKg: 67.5, defaultReps: 10 },
+          { id: 'legPress', name: '5. Beinpresse (Knie-freundlich)', sets: '2 × 8–10', count: 2, defaultKg: 185, defaultReps: 9 },
+          { id: 'rdl', name: '6. Beinbeuger sitzend', sets: '2 × 10–12', count: 2, defaultKg: 65, defaultReps: 11 },
+          { id: 'latRaise', name: '7. Seitheben', sets: '2 × 12–15', count: 2, defaultKg: 12.5, defaultReps: 14 },
+          { id: 'armsSuper', name: '8. Supersatz: Trizeps + Hammer-Curls', sets: '2 × 10–12', count: 2, defaultKg: 32.5, defaultReps: 11 }
+        ]
+      }
+    };
+
+    // Demo-Schlafdaten (inkl. RHR & niedrigster Schlafpuls getrennt)
+    const DEFAULT_SLEEP = [
+      { date: '2026-10-18', sleep: 7.6, deep: 62, rhr: 51, minHr: 46, hrv: 91, legs: 'frisch', score: 71 },
+      { date: '2026-10-19', sleep: 8.1, deep: 74, rhr: 49, minHr: 44, hrv: 103, legs: 'frisch', score: 86 },
+      { date: '2026-10-20', sleep: 6.5, deep: 45, rhr: 53, minHr: 48, hrv: 80, legs: 'schwer', score: 42 },
+      { date: '2026-10-21', sleep: 7.9, deep: 69, rhr: 50, minHr: 45, hrv: 97, legs: 'frisch', score: 78 },
+      { date: '2026-10-22', sleep: 8.2, deep: 76, rhr: 48, minHr: 43, hrv: 106, legs: 'frisch', score: 91 },
+      { date: '2026-10-23', sleep: 7.4, deep: 58, rhr: 50, minHr: 45, hrv: 93, legs: 'schwer', score: 65 },
+      { date: '2026-10-24', sleep: 8.0, deep: 70, rhr: 49, minHr: 44, hrv: 101, legs: 'frisch', score: 84 }
+    ];
+
+    // Demo-Trainingsdaten für Graphen & Kalender
+    const DEFAULT_WORKOUTS = {
+      '2026-10-16': {
+        type: 'gym3',
+        notes: 'Starkes 2-Satz-Training zum Wochenabschluss',
+        exercises: {
+          incBench: { kg: 30, reps: 7, sets: [{ kg: 30, reps: 7, done: true }, { kg: 30, reps: 6, done: true }] },
+          isoBench: { kg: 82.5, reps: 8, sets: [{ kg: 82.5, reps: 8, done: true }, { kg: 80, reps: 8, done: true }] },
+          row: { kg: 77.5, reps: 7, sets: [{ kg: 77.5, reps: 7, done: true }, { kg: 77.5, reps: 7, done: true }] },
+          lat: { kg: 67.5, reps: 9, sets: [{ kg: 67.5, reps: 9, done: true }, { kg: 67.5, reps: 9, done: true }] },
+          legPress: { kg: 185, reps: 8, sets: [{ kg: 185, reps: 8, done: true }, { kg: 185, reps: 8, done: true }] },
+          rdl: { kg: 85, reps: 8, sets: [{ kg: 85, reps: 8, done: true }, { kg: 85, reps: 8, done: true }] }
+        },
+        secondUnit: { type: 'bike', durationMin: 45, avgHr: 134, maxHr: 146, gapHours: 6 }
+      },
+      '2026-10-17': {
+        type: 'bike',
+        durationMin: 65,
+        avgHr: 136,
+        maxHr: 149,
+        notes: 'Samstags-Grundlage auf dem Indoor-Bike (Knie-schonend)'
+      },
+      '2026-10-19': {
+        type: 'gym1',
+        notes: 'Montag Oberkörper A, sehr guter Lockout',
+        exercises: {
+          isoBench: { kg: 85, reps: 7, sets: [{ kg: 85, reps: 7, done: true }, { kg: 85, reps: 6, done: true }, { kg: 82.5, reps: 7, done: true }] },
+          incBench: { kg: 30, reps: 8, sets: [{ kg: 30, reps: 8, done: true }, { kg: 30, reps: 7, done: true }] },
+          row: { kg: 80, reps: 7, sets: [{ kg: 80, reps: 7, done: true }, { kg: 80, reps: 6, done: true }, { kg: 77.5, reps: 7, done: true }] },
+          lat: { kg: 70, reps: 9, sets: [{ kg: 70, reps: 9, done: true }, { kg: 70, reps: 8, done: true }] },
+          latRaise: { kg: 12.5, reps: 14, sets: [{ kg: 12.5, reps: 14, done: true }, { kg: 12.5, reps: 13, done: true }] },
+          triceps: { kg: 35, reps: 11, sets: [{ kg: 35, reps: 11, done: true }, { kg: 35, reps: 10, done: true }] },
+          calves: { kg: 110, reps: 14, sets: [{ kg: 110, reps: 14, done: true }, { kg: 110, reps: 14, done: true }] }
+        }
+      },
+      '2026-10-20': {
+        type: 'run',
+        distanceKm: 5.0,
+        timeMin: 22.4,
+        avgHr: 176,
+        maxHr: 189,
+        runType: 'Tempolauf',
+        notes: 'Kontrollierter Tempolauf am Dienstagvormittag, Knie schmerzfrei'
+      },
+      '2026-10-21': {
+        type: 'gym2',
+        notes: 'Beinpresse Fokus auf 3–5 Wdh. Kraftaufbau',
+        exercises: {
+          legPress: { kg: 195, reps: 7, sets: [{ kg: 195, reps: 7, done: true }, { kg: 195, reps: 6, done: true }, { kg: 190, reps: 7, done: true }] },
+          rdl: { kg: 90, reps: 8, sets: [{ kg: 90, reps: 8, done: true }, { kg: 90, reps: 8, done: true }, { kg: 90, reps: 7, done: true }] },
+          isoBench: { kg: 85, reps: 8, sets: [{ kg: 85, reps: 8, done: true }, { kg: 85, reps: 8, done: true }] },
+          incBench: { kg: 30, reps: 8, sets: [{ kg: 30, reps: 8, done: true }, { kg: 30, reps: 8, done: true }] },
+          lat: { kg: 72.5, reps: 9, sets: [{ kg: 72.5, reps: 9, done: true }, { kg: 72.5, reps: 8, done: true }] },
+          rowWide: { kg: 70, reps: 10, sets: [{ kg: 70, reps: 10, done: true }, { kg: 70, reps: 10, done: true }] },
+          biceps: { kg: 16, reps: 11, sets: [{ kg: 16, reps: 11, done: true }, { kg: 16, reps: 10, done: true }] }
+        }
+      },
+      '2026-10-22': {
+        type: 'rest',
+        notes: 'Donnerstag: Fester Uni-/Labor-Ruhetag'
+      },
+      '2026-10-23': {
+        type: 'gym3',
+        notes: 'Freitag Double-Day: Vormittags Gym 3, nachmittags Zone 2 Bike',
+        exercises: {
+          incBench: { kg: 32, reps: 7, sets: [{ kg: 32, reps: 7, done: true }, { kg: 32, reps: 6, done: true }] },
+          isoBench: { kg: 87.5, reps: 7, sets: [{ kg: 87.5, reps: 7, done: true }, { kg: 85, reps: 8, done: true }] },
+          row: { kg: 82.5, reps: 7, sets: [{ kg: 82.5, reps: 7, done: true }, { kg: 82.5, reps: 6, done: true }] },
+          lat: { kg: 72.5, reps: 10, sets: [{ kg: 72.5, reps: 10, done: true }, { kg: 72.5, reps: 9, done: true }] },
+          legPress: { kg: 200, reps: 6, sets: [{ kg: 200, reps: 6, done: true }, { kg: 200, reps: 6, done: true }] },
+          rdl: { kg: 92.5, reps: 8, sets: [{ kg: 92.5, reps: 8, done: true }, { kg: 92.5, reps: 8, done: true }] },
+          latRaise: { kg: 12.5, reps: 14, sets: [{ kg: 12.5, reps: 14, done: true }, { kg: 12.5, reps: 14, done: true }] },
+          armsSuper: { kg: 35, reps: 11, sets: [{ kg: 35, reps: 11, done: true }, { kg: 35, reps: 10, done: true }] }
+        },
+        secondUnit: { type: 'bike', durationMin: 50, avgHr: 135, maxHr: 147, gapHours: 6 }
+      }
+    };
+
+    // Kuratierte wissenschaftliche Studien zu deinem Plan
+    const CURATED_STUDIES = [
+      {
+        title: 'Low-Volume High-Intensity Resistance Training (2 Sets vs. 4+ Sets per Exercise)',
+        authors: 'Schoenfeld et al. / Kriegen et al. (Sports Medicine)',
+        tags: ['2-Satz-System', 'Hypertrophie', '16 Sätze/Einheit'],
+        summary: 'Die ersten 2 harten Arbeitssätze nahe am Muskelversagen (RIR 1–2) lösen ~80 % des maximalen Hypertrophie-Signals einer Übung aus. Ein Aufteilen von 4–5 Sätzen auf 2 verschiedene Übungen (z.B. 3× Isolat. Bank + 2× KH-Schrägbank) maximiert die Faserrekrutierung ohne zentralnervöses Junk-Volume.'
+      },
+      {
+        title: 'Concurrent Training & Cycling vs. Running Interference on Lower-Body Strength',
+        authors: 'Wilson et al. / Schumann et al. (2022 Meta-Analysis)',
+        tags: ['Indoor-Bike Zone 2', 'Knie-Schutz', '250 kg Beinpresse'],
+        summary: 'Während häufiges Grundlagen-Laufen durch exzentrische Mikrotraumata die Maximalkraftentwicklung der Beine und die Patellasehne belastet, zeigt Zone-2-Radfahren (konzentrisch, 0 % Stoßbelastung) keinen negativen Interferenz-Effekt auf schwere Beinpress-Kraftwerte.'
+      },
+      {
+        title: 'Time Course of mTOR & AMPK Signaling in Double-Day Sessions (≥ 6h Recovery Gap)',
+        authors: 'Baar K. / Robineau et al. (Journal of Strength & Conditioning Research)',
+        tags: ['Double-Days', 'Freitag Gym + Bike', 'mTOR vs. AMPK'],
+        summary: 'Liegen zwischen dem morgendlichen Krafttraining (09:15 Uhr) und der Ausdauereinheit am Nachmittag mindestens 4–6 Stunden Pause inkl. Protein-/Kohlenhydratzufuhr, ist die mTOR-Proteinsynthese-Kaskade ungestört.'
+      },
+      {
+        title: 'Nocturnal Minimum Heart Rate vs. Morning Resting Heart Rate as ZNS Readiness Markers',
+        authors: 'Buchheit M. / Plews et al. (Int J Sports Physiol Perform)',
+        tags: ['Ruhepuls < 50', 'Niedrigster Schlafpuls', 'HRV'],
+        summary: 'Der niedrigste nächtliche Schlafpuls spiegelt die maximale parasympathische Vagus-Aktivierung wider. Bleibt der niedrigste Schlafpuls nach einem Double-Day ungewöhnlich nah am Tages-Ruhepuls (kleines Delta), deutet dies auf unvollständige nächtliche ZNS-Regeneration hin.'
+      },
+      {
+        title: 'Threshold / Tempo Runs vs. All-Out Racing for 5-km Time Trial Performance',
+        authors: 'Seiler S. / Stöggl & Sperlich (Frontiers in Physiology)',
+        tags: ['Sub-20 5k', 'Tempolauf', 'Maximalpuls'],
+        summary: 'Ein wöchentlicher kontrollierter Schwellenlauf (88–92 % der Max-HF) über 4–6 km kombiniert mit gelenkschonendem Zone-2-Volumen auf dem Bike steigert die vVO2max und Laufökonomie genauso stark wie wöchentliche 100-%-All-Out-Tests, halbiert aber die muskuläre Erholungszeit.'
+      }
+    ];
+
+    // State
+    let sleepHistory = [];
+    let workoutLogs = {};
+    let currentCalYear = 2026;
+    let currentCalMonth = 9; // 0-indexed -> 9 = Oktober
+    let selectedDateStr = '';
+
+    // State für den Hevy-Style Gym-Tracker
+    let gtCurrentDate = '';
+    let gtSession = {
+      templateType: 'gym1',
+      notes: '',
+      exercises: []
+    };
+    let gtTimerSeconds = 0;
+    let gtTimerInterval = null;
+    let currentModalCategory = 'Alle';
+
+    // ==================== NATIVE iOS-BRÜCKE (Capacitor) ====================
+    const isNativeApp = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    const NativePlugins = isNativeApp ? window.Capacitor.Plugins : {};
+    const PERSISTED_KEYS = [STORAGE_KEY_SLEEP, STORAGE_KEY_WORKOUTS, STORAGE_KEY_CUSTOM_EX];
+
+    // iOS darf den WebView-Speicher (localStorage) bei Speichermangel leeren.
+    // Deshalb werden alle Daten zusätzlich in den nativen App-Einstellungen gespiegelt.
+    function mirrorToNativeStorage() {
+      if (!isNativeApp || !NativePlugins.Preferences) return;
+      PERSISTED_KEYS.forEach(key => {
+        const value = localStorage.getItem(key);
+        if (value !== null) NativePlugins.Preferences.set({ key, value }).catch(() => {});
+      });
+    }
+
+    async function restoreFromNativeStorageIfNeeded() {
+      if (!isNativeApp || !NativePlugins.Preferences) return false;
+      if (localStorage.getItem(STORAGE_KEY_SLEEP) || localStorage.getItem(STORAGE_KEY_WORKOUTS)) return false;
+      let restored = false;
+      for (const key of PERSISTED_KEYS) {
+        try {
+          const { value } = await NativePlugins.Preferences.get({ key });
+          if (value) { localStorage.setItem(key, value); restored = true; }
+        } catch (e) {}
+      }
+      return restored;
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      if (await restoreFromNativeStorageIfNeeded()) {
+        location.reload();
+        return;
+      }
+      loadStorage();
+      const now = new Date();
+      selectedDateStr = formatDateISO(now);
+      gtCurrentDate = selectedDateStr;
+      currentCalYear = now.getFullYear();
+      currentCalMonth = now.getMonth();
+
+      document.getElementById('checkin-date-picker').value = selectedDateStr;
+      document.getElementById('gt-date-picker').value = gtCurrentDate;
+      populateTrendSelectDropdown();
+      updateOverviewUI();
+      renderCalendar();
+      selectCalendarDate(selectedDateStr);
+      loadGymTrackerForDate(gtCurrentDate);
+      renderStrengthOverviewAndAnalysis();
+      renderExerciseHistoryComparison();
+      renderHistoryUI();
+      filterCuratedStudies('');
+      mirrorToNativeStorage();
+    });
+
+    function alertUser(msg) {
+      const banner = document.getElementById('toast-banner');
+      if (!banner) return;
+      banner.innerText = msg;
+      banner.classList.remove('hidden');
+      setTimeout(() => banner.classList.add('hidden'), 2800);
+    }
+
+    function openSettingsModal() {
+      const m = document.getElementById('settings-modal');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+
+    function closeSettingsModal() {
+      const m = document.getElementById('settings-modal');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+
+    function populateTrendSelectDropdown() {
+      const sel = document.getElementById('exercise-trend-select');
+      if (!sel) return;
+      const coreOpts = `
+        <option value="legPress">🦵 Beinpresse 45° (250kg × 3–5)</option>
+        <option value="isoBench">🏋️‍♂️ Bankdrück-Äquivalent (100kg × 3–5)</option>
+        <option value="row">🚣 Rudern schwer (100kg × 3–5)</option>
+        <option value="incBench">📐 KH-Schrägbank (kg pro Hantel)</option>
+        <option value="lat">🪽 Latzug breit / eng</option>
+        <option value="rdl">🦵 RDL / Beinbeuger</option>
+        <option value="run5k">🏃‍♂️ Laufen (Pace, Distanz & 5k-Äquivalent)</option>
+        <option value="bikeZ2">🚴‍♂️ Indoor-Bike Zone 2 (Effizienz)</option>
+        <option value="rhrTrend">❤️ Ruhe-HF vs. Niedrigster Schlafpuls</option>
+      `;
+      const extraKeys = Object.keys(EXERCISE_CATALOG).filter(k => !['legPress','isoBench','row','incBench','lat','rdl'].includes(k));
+      const extraOpts = extraKeys.map(k => `<option value="${k}">➕ ${EXERCISE_CATALOG[k].name}</option>`).join('');
+      sel.innerHTML = coreOpts + `<optgroup label="Weitere Gym-Übungen">${extraOpts}</optgroup>`;
+    }
+
+    function formatDateISO(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function formatDisplayDate(isoStr) {
+      if (!isoStr) return '';
+      const parts = isoStr.split('-');
+      if (parts.length !== 3) return isoStr;
+      return `${parseInt(parts[2])}.${parseInt(parts[1])}.${parts[0]}`;
+    }
+
+    function getPreviousDayISO(isoDate) {
+      const d = new Date(isoDate + 'T12:00:00');
+      d.setDate(d.getDate() - 1);
+      return formatDateISO(d);
+    }
+
+    function loadStorage() {
+      try {
+        const customEx = localStorage.getItem(STORAGE_KEY_CUSTOM_EX);
+        if (customEx) {
+          const parsedEx = JSON.parse(customEx);
+          Object.assign(EXERCISE_CATALOG, parsedEx);
+        }
+        const s = localStorage.getItem(STORAGE_KEY_SLEEP);
+        sleepHistory = s ? JSON.parse(s) : [...DEFAULT_SLEEP];
+        const w = localStorage.getItem(STORAGE_KEY_WORKOUTS);
+        workoutLogs = w ? JSON.parse(w) : JSON.parse(JSON.stringify(DEFAULT_WORKOUTS));
+      } catch (e) {
+        sleepHistory = [...DEFAULT_SLEEP];
+        workoutLogs = JSON.parse(JSON.stringify(DEFAULT_WORKOUTS));
+      }
+    }
+
+    function saveStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY_SLEEP, JSON.stringify(sleepHistory));
+        localStorage.setItem(STORAGE_KEY_WORKOUTS, JSON.stringify(workoutLogs));
+        localStorage.setItem(STORAGE_KEY_CUSTOM_EX, JSON.stringify(EXERCISE_CATALOG));
+        mirrorToNativeStorage();
+      } catch (e) {
+        console.error('Storage error', e);
+      }
+    }
+
+    // Kraftformeln: Epley 1RM & 4RM (für 3–5 Wiederholungen Ziel)
+    function calc1RM(kg, reps) {
+      if (!kg || kg <= 0) return 0;
+      if (reps <= 1) return kg;
+      return kg * (1 + reps / 30);
+    }
+
+    // Berechnet das echte Arbeitsgewicht für 4 saubere Wiederholungen (Mitte von 3–5 Wdh.)
+    function calc4RM(kg, reps) {
+      if (!kg || kg <= 0) return 0;
+      if (reps >= 3 && reps <= 5) return kg;
+      const orm = calc1RM(kg, reps);
+      return orm / (1 + 4 / 30);
+    }
+
+    // Berechnet aus beliebiger Laufdistanz die Pace (min/km) und das 5-km-Äquivalent (Riegel-Formel)
+    function calcRunMetrics(distKm, timeMin) {
+      const d = Math.max(0.5, parseFloat(distKm) || 5.0);
+      const t = Math.max(1, parseFloat(timeMin) || 22.0);
+      const paceDecimal = t / d;
+      const paceMin = Math.floor(paceDecimal);
+      const paceSec = String(Math.round((paceDecimal - paceMin) * 60)).padStart(2, '0');
+      const eq5kMin = d === 5.0 ? t : t * Math.pow(5.0 / d, 1.06);
+      return {
+        paceStr: `${paceMin}:${paceSec} /km`,
+        paceDecimal,
+        eq5kMin: Math.round(eq5kMin * 100) / 100
+      };
+    }
+
+    // Tab Navigation
+    function switchTab(tabId) {
+      const tabs = ['overview', 'gymtracker', 'calendar', 'goals', 'checkin', 'history', 'studies'];
+      tabs.forEach(t => {
+        const view = document.getElementById(`view-${t}`);
+        const btn = document.getElementById(`tab-${t}`);
+        const nav = document.querySelector(`.nav-item[data-tab="${t}"]`);
+
+        if (t === tabId) {
+          if (view) view.classList.remove('hidden');
+          if (btn) btn.className = "tab-btn whitespace-nowrap px-3 py-1.5 rounded-full transition bg-white text-black font-semibold shadow-sm";
+          if (nav) { nav.classList.add('text-white'); nav.classList.remove('text-gray-400'); }
+        } else {
+          if (view) view.classList.add('hidden');
+          if (btn) btn.className = "tab-btn whitespace-nowrap px-3 py-1.5 rounded-full transition bg-iosCard text-gray-300 hover:text-white border border-iosBorder";
+          if (nav) { nav.classList.remove('text-white'); nav.classList.add('text-gray-400'); }
+        }
+      });
+      if (tabId === 'gymtracker') {
+        loadGymTrackerForDate(gtCurrentDate || selectedDateStr);
+      }
+      if (tabId === 'goals') {
+        populateTrendSelectDropdown();
+        renderStrengthOverviewAndAnalysis();
+        renderExerciseHistoryComparison();
+      }
+      if (tabId === 'calendar') {
+        renderCalendar();
+        renderLoggedWorkoutsList();
+      }
+      if (tabId === 'history') {
+        renderHistoryUI();
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function openTodayInGymTracker() {
+      const todayISO = formatDateISO(new Date());
+      gtCurrentDate = todayISO;
+      document.getElementById('gt-date-picker').value = todayISO;
+      switchTab('gymtracker');
+    }
+
+    function openTodayInCalendar() {
+      const todayISO = formatDateISO(new Date());
+      const now = new Date();
+      currentCalYear = now.getFullYear();
+      currentCalMonth = now.getMonth();
+      switchTab('calendar');
+      selectCalendarDate(todayISO);
+    }
+
+    // ==================== SLEEP & RECOVERY SCORE ALGORITHM ====================
+    function calculateRecoveryScore(sleep, deep, rhr, minHr, hrv, legs) {
+      let s = 52;
+      s += (sleep - 7.5) * 11;
+      s += (deep - 58) * 0.3;
+      s += (50 - rhr) * 3.2;    // Belohnt Tages-Ruhepuls < 50 bpm
+      s += (45 - minHr) * 2.5;  // Belohnt tiefen nächtlichen Schlafpuls
+      s += (hrv - 90) * 0.55;
+      if (legs === 'schwer') s -= 8;
+      if (legs === 'knie') s -= 18;
+      return Math.max(5, Math.min(100, Math.round(s)));
+    }
+
+    function saveMorningCheckin() {
+      const date = document.getElementById('checkin-date-picker').value || formatDateISO(new Date());
+      const sleep = parseFloat(document.getElementById('in-sleep').value) || 7.5;
+      const deep = parseInt(document.getElementById('in-deep').value) || 60;
+      const rhr = parseInt(document.getElementById('in-rhr').value) || 50;
+      const minHr = parseInt(document.getElementById('in-minhr').value) || Math.max(38, rhr - 5);
+      const hrv = parseInt(document.getElementById('in-hrv').value) || 95;
+      const legs = document.getElementById('in-legs').value || 'frisch';
+
+      const score = calculateRecoveryScore(sleep, deep, rhr, minHr, hrv, legs);
+      sleepHistory = sleepHistory.filter(item => item.date !== date);
+      sleepHistory.push({ date, sleep, deep, rhr, minHr, hrv, legs, score });
+      sleepHistory.sort((a, b) => a.date.localeCompare(b.date));
+
+      saveStorage();
+      updateOverviewUI();
+      renderHistoryUI();
+      renderStrengthOverviewAndAnalysis();
+      alertUser(`Check-in für ${formatDisplayDate(date)} gespeichert (Score: ${score}/100)!`);
+      switchTab('overview');
+    }
+
+    // Intelligente Tages-Empfehlung (inkl. Double-Day Ermüdung & RHR/MinHR Analyse)
+    function getRecommendedPlanForDate(isoDate) {
+      const d = new Date(isoDate + 'T12:00:00');
+      const wd = d.getDay(); // 0=So, 1=Mo, 2=Di, 3=Mi, 4=Do, 5=Fr, 6=Sa
+      const latestSleep = sleepHistory.find(s => s.date === isoDate) || sleepHistory[sleepHistory.length - 1] || DEFAULT_SLEEP[DEFAULT_SLEEP.length - 1];
+      const prevDayISO = getPreviousDayISO(isoDate);
+      const prevWorkout = workoutLogs[prevDayISO];
+
+      const hadHardDoubleYesterday = prevWorkout && prevWorkout.secondUnit && prevWorkout.secondUnit.type !== 'none' && (prevWorkout.secondUnit.gapHours < 4 || prevWorkout.secondUnit.type === 'run');
+      const minHr = latestSleep.minHr ?? (latestSleep.rhr - 5);
+      const elevatedNightHr = minHr >= 48 || (latestSleep.rhr - minHr) <= 2;
+
+      if (latestSleep.legs === 'knie') {
+        return {
+          suggestedType: 'bike',
+           deviated: true,
+          title: '⚠️ Knie-Schutz-Abweichung: Lockeres Indoor-Bike statt Lauf/Beinpresse',
+          sub: 'Knie heute gereizt – Stoß- und Scherkräfte gestrichen',
+          reason: 'Da du gereizte Knie gemeldet hast, weicht der Coach vom Standardplan ab: Kein Laufen und keine schwere Beinpresse heute. Nutze 45 Min. Indoor-Bike mit niedrigem Widerstand zur Gelenkernährung.',
+          items: ['45 Min. Indoor-Bike (Zone 1–2, hohe Trittfrequenz >85 RPM)', 'Falls Gym geplant war: Nur Oberkörper-Übungen ausführen!']
+        };
+      }
+
+      if (wd === 4) {
+        return {
+          suggestedType: 'rest',
+          deviated: false,
+          title: '🛑 Donnerstag: Fester Restday (Uni & Labor)',
+          sub: 'Vollster Studientag + 18–20 Uhr Abendtermin',
+          reason: 'Donnerstag bleibt dein gesetzter 100 % Ruhetag zur Superkompensation nach dem schweren Mittwochs-Gym.',
+          items: ['Kein Gym, kein Lauf, kein Rad', 'Fokus auf Schlaf & Protein für das Freitags-Training']
+        };
+      }
+
+      if (wd === 1) {
+        return {
+          suggestedType: 'gym1',
+          deviated: false,
+          title: '🏋️‍♂️ Montag: Gym Tag 1 (Oberkörper A + Waden)',
+          sub: '16 Sätze · Oberschenkel bleiben zu 100 % frisch für Dienstag',
+          reason: 'Montags trainieren wir schwer Brust, Rücken, Schultern, Trizeps und Waden. Die Quads und Hamstrings bleiben erholt für deinen morgigen Tempolauf.',
+          items: WORKOUT_TEMPLATES.gym1.exercises.map(e => `${e.name} (${e.sets})`)
+        };
+      }
+
+      if (wd === 2) {
+        if (hadHardDoubleYesterday || latestSleep.score < 38 || elevatedNightHr) {
+          return {
+            suggestedType: 'bike',
+            deviated: true,
+            title: '🔄 Plan-Anpassung (Di): 45m Zone-2-Bike statt Tempolauf',
+            sub: 'Erhöhte ZNS-/Double-Day-Ermüdung erkannt',
+            reason: `Wegen ${hadHardDoubleYesterday ? 'deines gestrigen Double-Days' : `deines Schlafpulses (${minHr} bpm) / Scores (${latestSleep.score})`} verschieben wir den harten 5k-Lauf und schonen deine Knie und das ZNS auf dem Indoor-Bike.`,
+            items: ['45–50 Min. Indoor-Bike bei 130–142 bpm', 'Spontaner 5k-Tempolauf stattdessen am Wochenende möglich']
+          };
+        }
+        return {
+          suggestedType: 'run',
+          deviated: false,
+          title: '🏃‍♂️ Dienstag (09:15 Uhr): 5–6 km Quality- / Tempolauf',
+          sub: 'Vorlesungslücke am Vormittag · Beine frisch vom Oberkörper-Montag',
+          reason: 'Deine Oberschenkel sind ausgeruht. Lauf 1 km locker ein und dann 4–5 km zügig im Schwellentempo (Pace ~4:10–4:25/km) für dein Sub-20-Ziel.',
+          items: ['1 km Warm-up', '4–5 km Tempolauf (Pace 4:10–4:25/km, HF ~175–185 bpm)', '500 m lockeres Auslaufen']
+        };
+      }
+
+      if (wd === 3) {
+        return {
+          suggestedType: 'gym2',
+          deviated: false,
+          title: '🦵 Mittwoch: Gym Tag 2 (250 kg Beinpresse Fokus + OK B)',
+          sub: '16 Sätze · Morgen ist dein fester Donnerstags-Restday!',
+          reason: 'Heute gilt voller Fokus auf deine 3 schweren Arbeitssätze an der 45°-Beinpresse (Ziel: 250 kg × 3–5 Wdh.) plus 3 Sätze RDL/Beinbeuger für Knie-Stabilität.',
+          items: WORKOUT_TEMPLATES.gym2.exercises.map(e => `${e.name} (${e.sets})`)
+        };
+      }
+
+      if (wd === 5) {
+        return {
+          suggestedType: 'gym3',
+          deviated: false,
+          title: '⚡ Freitag (Double-Day Option): Gym Tag 3 (2-Satz-GK)',
+          sub: '09:15 Uhr 16 Sätze im 2-Satz-System · Nachmittags optional Bike Z2',
+          reason: 'Nach dem freien Donnerstag bist du maximal erholt. Jede Übung wird für 2 hochintensive Sätze ausgeführt. Nachmittags (mit ≥ 6h Pause) ideal für 45–60 Min. Indoor-Bike.',
+          items: WORKOUT_TEMPLATES.gym3.exercises.map(e => `${e.name} (${e.sets})`)
+        };
+      }
+
+      if (wd === 6) {
+        return {
+          suggestedType: 'bike',
+          deviated: false,
+          title: '🚴‍♂️ Samstag: 60–75 Min. Indoor-Bike (Zone 2 Knie-Schutz)',
+          sub: 'Kein Zone-2-Lauf wegen der Knie · Senkt Ruhe-HF unter 50 bpm',
+          reason: 'Gelenkschonendes Grundlagen-Ausdauertraining auf dem Bike vergrößert dein Schlagvolumen des Herzens ohne Stoßbelastung für die Knie.',
+          items: ['60–75 Min. Indoor-Bike strikt bei 130–145 bpm', 'Erhöht kapillare Dichte und drückt den Schlafpuls Richtung <44 bpm']
+        };
+      }
+
+      return {
+        suggestedType: 'rest',
+        deviated: false,
+        title: '🌿 Sonntag: Aktive Erholung / Flexibler Ruhetag',
+        sub: 'Vorbereitung auf den Gym-Montag',
+        reason: 'Nutze den Sonntag zur kompletten Erholung oder für 30–45 Min. ganz lockeres Rollen auf dem Indoor-Bike.',
+        items: ['Komplett frei oder 35 Min. lockeres Recovery-Bike (<130 bpm)']
+      };
+    }
+
+    function updateOverviewUI() {
+      const latest = sleepHistory[sleepHistory.length - 1] || DEFAULT_SLEEP[DEFAULT_SLEEP.length - 1];
+      const minHr = latest.minHr ?? (latest.rhr - 5);
+      const hrGap = latest.rhr - minHr;
+
+      document.getElementById('ov-date-label').innerText = `Erholung am ${formatDisplayDate(latest.date)}`;
+      document.getElementById('ov-score-val').innerText = latest.score;
+      document.getElementById('ov-sleep-val').innerText = `${latest.sleep} h`;
+      document.getElementById('ov-deep-val').innerText = `${latest.deep}m Tief`;
+      document.getElementById('ov-rhr-val').innerText = `${latest.rhr} bpm`;
+      document.getElementById('ov-minhr-val').innerText = `${minHr} bpm`;
+      document.getElementById('ov-hrgap-val').innerText = `Δ ${hrGap} bpm`;
+      document.getElementById('ov-hrv-val').innerText = `${latest.hrv} ms`;
+      document.getElementById('ov-legs-val').innerText = latest.legs === 'frisch' ? 'Frisch' : (latest.legs === 'schwer' ? 'Schwer' : 'Knie!');
+
+      const badge = document.getElementById('ov-score-badge');
+      const dot = document.getElementById('ov-score-dot');
+      const text = document.getElementById('ov-score-text');
+
+      if (latest.score >= 67) {
+        badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold mt-2 bg-recoveryGreen/20 text-recoveryGreen';
+        dot.className = 'w-2 h-2 rounded-full bg-recoveryGreen';
+        text.innerText = 'hoch (Top erholt)';
+      } else if (latest.score >= 34) {
+        badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold mt-2 bg-recoveryAmber/20 text-recoveryAmber';
+        dot.className = 'w-2 h-2 rounded-full bg-recoveryAmber';
+        text.innerText = 'mittel (Solide)';
+      } else {
+        badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold mt-2 bg-recoveryRed/20 text-recoveryRed';
+        dot.className = 'w-2 h-2 rounded-full bg-recoveryRed';
+        text.innerText = 'niedrig (ZNS ermüdet)';
+      }
+
+      const rhrStatus = latest.rhr < 50 ? 'unter deiner 50-bpm-Zielmarke (Top!)' : 'noch knapp über dem <50-bpm-Ziel';
+      const minHrNote = minHr <= 45
+        ? `Dein niedrigster Schlafpuls von ${minHr} bpm (Δ ${hrGap} bpm zum Tages-Ruhepuls) bestätigt eine tiefe parasympathische Nacht-Erholung.`
+        : `Dein niedrigster Schlafpuls lag bei ${minHr} bpm (nur ${hrGap} bpm unter dem Ruhepuls) – achte heute Abend auf ausreichend Abstand zwischen letzter Mahlzeit/Training und Schlaf.`;
+
+      const todayISO = formatDateISO(new Date());
+      const plan = getRecommendedPlanForDate(todayISO);
+
+      document.getElementById('ov-analysis-text').innerHTML = `
+        Letzte Nacht: <strong>${latest.sleep} h Schlaf</strong> (${latest.deep} Min. Tiefschlaf), Tages-Ruhepuls <strong>${latest.rhr} bpm</strong> (${rhrStatus}) und HRV <strong>${latest.hrv} ms</strong>. ${minHrNote} <br><span class="text-iosAccent font-semibold mt-1 inline-block">&rarr; ${plan.reason}</span>
+      `;
+
+      document.getElementById('ov-workout-title').innerText = plan.title;
+      document.getElementById('ov-workout-sub').innerText = plan.sub;
+      const devPill = document.getElementById('ov-deviation-pill');
+      if (plan.deviated) devPill.classList.remove('hidden');
+      else devPill.classList.add('hidden');
+
+      document.getElementById('ov-workout-items').innerHTML = plan.items.map(i => `<div>• ${i}</div>`).join('');
+    }
+
+    // ==================== HEVY-STYLE GYM TRACKER LOGIK ====================
+    function toggleWorkoutTimer() {
+      if (gtTimerInterval) {
+        clearInterval(gtTimerInterval);
+        gtTimerInterval = null;
+      } else {
+        gtTimerInterval = setInterval(() => {
+          gtTimerSeconds++;
+          const m = String(Math.floor(gtTimerSeconds / 60)).padStart(2, '0');
+          const s = String(gtTimerSeconds % 60).padStart(2, '0');
+          document.getElementById('gt-timer-display').innerText = `${m}:${s}`;
+        }, 1000);
+      }
+    }
+
+    function getLastExerciseValuesBefore(exId, beforeDateISO) {
+      const dates = Object.keys(workoutLogs).filter(d => d < beforeDateISO).sort();
+      for (let i = dates.length - 1; i >= 0; i--) {
+        const log = workoutLogs[dates[i]];
+        if (log && log.exercises && log.exercises[exId]) {
+          return { date: dates[i], ...log.exercises[exId] };
+        }
+      }
+      return null;
+    }
+
+    function loadGymTrackerForDate(isoDate) {
+      gtCurrentDate = isoDate;
+      document.getElementById('gt-date-picker').value = isoDate;
+      const existing = workoutLogs[isoDate];
+
+      if (existing && existing.type && existing.type.startsWith('gym') && existing.exercises) {
+        gtSession.templateType = WORKOUT_TEMPLATES[existing.type] ? existing.type : 'custom';
+        gtSession.notes = existing.notes || '';
+        gtSession.exercises = Object.keys(existing.exercises).map(exId => {
+          const exData = existing.exercises[exId];
+          if (exData.sets && Array.isArray(exData.sets) && exData.sets.length > 0) {
+            return { id: exId, sets: JSON.parse(JSON.stringify(exData.sets)) };
+          } else {
+            const defCount = EXERCISE_CATALOG[exId]?.defaultSets || 2;
+            const setsArr = [];
+            for (let i = 0; i < defCount; i++) {
+              setsArr.push({ kg: exData.kg, reps: exData.reps, done: true });
+            }
+            return { id: exId, sets: setsArr };
+          }
+        });
+      } else {
+        const wd = new Date(isoDate + 'T12:00:00').getDay();
+        let defaultTpl = 'gym1';
+        if (wd === 3) defaultTpl = 'gym2';
+        else if (wd === 5) defaultTpl = 'gym3';
+        buildGtSessionFromTemplate(defaultTpl);
+      }
+
+      document.getElementById('gt-template-select').value = gtSession.templateType;
+      document.getElementById('gt-notes-input').value = gtSession.notes || '';
+      renderGymTrackerUI();
+    }
+
+    function buildGtSessionFromTemplate(tplKey) {
+      gtSession.templateType = tplKey;
+      gtSession.notes = '';
+      if (WORKOUT_TEMPLATES[tplKey]) {
+        const tpl = WORKOUT_TEMPLATES[tplKey];
+        gtSession.exercises = tpl.exercises.map(item => {
+          const prev = getLastExerciseValuesBefore(item.id, gtCurrentDate);
+          const count = item.count || 2;
+          const sets = [];
+          for (let i = 0; i < count; i++) {
+            if (prev && prev.sets && prev.sets[i]) {
+              sets.push({ kg: prev.sets[i].kg, reps: prev.sets[i].reps, done: false });
+            } else {
+              sets.push({ kg: prev ? prev.kg : item.defaultKg, reps: prev ? prev.reps : item.defaultReps, done: false });
+            }
+          }
+          return { id: item.id, sets };
+        });
+      } else {
+        gtSession.exercises = [];
+      }
+    }
+
+    function switchGymTrackerTemplate(tplKey) {
+      buildGtSessionFromTemplate(tplKey);
+      renderGymTrackerUI();
+    }
+
+    function renderGymTrackerUI() {
+      const titleNames = {
+        gym1: 'Gym Tag 1 (Mo): Oberkörper A + Waden',
+        gym2: 'Gym Tag 2 (Mi): Beinpresse 250kg + OK B',
+        gym3: 'Gym Tag 3 (Fr): Ganzkörper 2-Satz-System',
+        custom: 'Freies Gym-Workout (Individuell)'
+      };
+      document.getElementById('gt-workout-title').innerText = titleNames[gtSession.templateType] || 'Gym-Workout';
+
+      const container = document.getElementById('gt-exercises-container');
+      if (gtSession.exercises.length === 0) {
+        container.innerHTML = `
+          <div class="bg-iosCard rounded-2xl p-6 border border-iosBorder text-center text-xs text-gray-400">
+            Noch keine Übungen im aktuellen Workout. Tippe unten auf <strong>„+ Weitere Übung hinzufügen“</strong>!
+          </div>
+        `;
+        updateGtHeaderStats();
+        return;
+      }
+
+      container.innerHTML = gtSession.exercises.map((exItem, exIdx) => {
+        const catInfo = EXERCISE_CATALOG[exItem.id] || { name: exItem.id, category: 'Gym', defaultKg: 50, defaultReps: 8 };
+        const prev = getLastExerciseValuesBefore(exItem.id, gtCurrentDate);
+        const prevSummary = prev ? `Letztes Top-Set: ${prev.kg} kg × ${prev.reps} (4RM: ${Math.round(calc4RM(prev.kg, prev.reps))} kg)` : 'Noch keine Vorwerte';
+
+        const rowsHtml = exItem.sets.map((s, sIdx) => {
+          const prevSetStr = (prev && prev.sets && prev.sets[sIdx])
+            ? `${prev.sets[sIdx].kg}kg × ${prev.sets[sIdx].reps}`
+            : (prev ? `${prev.kg}kg × ${prev.reps}` : '—');
+
+          return `
+            <div class="grid grid-cols-12 gap-1.5 items-center py-1.5 px-2 rounded-xl transition ${s.done ? 'bg-recoveryGreen/15 border border-recoveryGreen/30' : 'bg-iosDark/70 border border-transparent'}">
+              <div class="col-span-2 flex items-center gap-1">
+                <span class="w-5 h-5 rounded-md bg-iosCard text-[11px] font-bold text-gray-300 flex items-center justify-center">${sIdx + 1}</span>
+                <button type="button" onclick="removeSetFromGtExercise(${exIdx}, ${sIdx})" title="Satz löschen" class="text-gray-500 hover:text-recoveryRed text-xs px-0.5">&times;</button>
+              </div>
+              <div class="col-span-3 text-[11px] text-gray-400 font-medium truncate">${prevSetStr}</div>
+              <div class="col-span-3">
+                <input type="number" step="0.5" value="${s.kg}" oninput="updateGtSetVal(${exIdx}, ${sIdx}, 'kg', this.value)" class="w-full bg-iosCard border border-iosBorder rounded-lg py-1 px-1.5 text-center text-xs font-bold text-white focus:border-iosAccent focus:outline-none">
+              </div>
+              <div class="col-span-2">
+                <input type="number" step="1" value="${s.reps}" oninput="updateGtSetVal(${exIdx}, ${sIdx}, 'reps', this.value)" class="w-full bg-iosCard border border-iosBorder rounded-lg py-1 px-1.5 text-center text-xs font-bold text-white focus:border-iosAccent focus:outline-none">
+              </div>
+              <div class="col-span-2 flex justify-end">
+                <button type="button" onclick="toggleGtSetDone(${exIdx}, ${sIdx})" class="w-8 h-7 rounded-lg font-bold text-xs flex items-center justify-center transition ${s.done ? 'bg-recoveryGreen text-black shadow-sm' : 'bg-iosCard border border-iosBorder text-gray-400 hover:text-white'}">
+                  ✓
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div class="bg-iosCard rounded-2xl p-4 border border-iosBorder space-y-2.5 shadow-sm">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-iosAccent/15 text-iosAccent">${catInfo.category}</span>
+                  <h4 class="text-sm font-bold text-white">${catInfo.name}</h4>
+                </div>
+                <p class="text-[10px] text-gray-400 mt-0.5">${prevSummary}</p>
+              </div>
+              <button type="button" onclick="removeExerciseFromGt(${exIdx})" class="text-xs text-gray-500 hover:text-recoveryRed px-2 py-1 rounded-lg bg-iosDark border border-iosBorder" title="Übung entfernen">
+                🗑️
+              </button>
+            </div>
+
+            <div class="grid grid-cols-12 gap-1.5 text-[10px] font-bold uppercase text-gray-500 px-2 pt-1">
+              <div class="col-span-2">Satz</div>
+              <div class="col-span-3">Vorher</div>
+              <div class="col-span-3 text-center">kg</div>
+              <div class="col-span-2 text-center">Wdh</div>
+              <div class="col-span-2 text-right">✓</div>
+            </div>
+
+            <div class="space-y-1.5">
+              ${rowsHtml}
+            </div>
+
+            <button type="button" onclick="addSetToGtExercise(${exIdx})" class="w-full py-2 mt-1 rounded-xl bg-iosDark hover:bg-iosCardHover border border-iosBorder text-[11px] font-bold text-gray-300 transition">
+              + Satz hinzufügen
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      updateGtHeaderStats();
+    }
+
+    function updateGtSetVal(exIdx, sIdx, field, val) {
+      const num = parseFloat(val) || 0;
+      gtSession.exercises[exIdx].sets[sIdx][field] = num;
+      updateGtHeaderStats();
+    }
+
+    function toggleGtSetDone(exIdx, sIdx) {
+      const s = gtSession.exercises[exIdx].sets[sIdx];
+      s.done = !s.done;
+      if (s.done && !gtTimerInterval && gtTimerSeconds === 0) {
+        toggleWorkoutTimer();
+      }
+      renderGymTrackerUI();
+    }
+
+    function addSetToGtExercise(exIdx) {
+      const ex = gtSession.exercises[exIdx];
+      const lastSet = ex.sets.length > 0 ? ex.sets[ex.sets.length - 1] : { kg: 50, reps: 8 };
+      ex.sets.push({ kg: lastSet.kg, reps: lastSet.reps, done: false });
+      renderGymTrackerUI();
+    }
+
+    function removeSetFromGtExercise(exIdx, sIdx) {
+      const ex = gtSession.exercises[exIdx];
+      if (ex.sets.length <= 1) {
+        removeExerciseFromGt(exIdx);
+        return;
+      }
+      ex.sets.splice(sIdx, 1);
+      renderGymTrackerUI();
+    }
+
+    function removeExerciseFromGt(exIdx) {
+      gtSession.exercises.splice(exIdx, 1);
+      renderGymTrackerUI();
+    }
+
+    function updateGtHeaderStats() {
+      let totalVol = 0;
+      let doneSets = 0;
+      let totalSets = 0;
+      gtSession.exercises.forEach(ex => {
+        ex.sets.forEach(s => {
+          totalSets++;
+          if (s.done) {
+            doneSets++;
+            totalVol += (parseFloat(s.kg) || 0) * (parseInt(s.reps) || 0);
+          }
+        });
+      });
+      document.getElementById('gt-volume-display').innerText = `${Math.round(totalVol).toLocaleString('de-DE')} kg`;
+      document.getElementById('gt-sets-display').innerText = `${doneSets} / ${totalSets} ✓`;
+    }
+
+    function openAddExerciseModal() {
+      document.getElementById('add-exercise-modal').classList.remove('hidden');
+      document.getElementById('add-exercise-modal').classList.add('flex');
+      document.getElementById('exercise-search-input').value = '';
+      currentModalCategory = 'Alle';
+      renderExercisePickerList();
+    }
+
+    function closeAddExerciseModal() {
+      document.getElementById('add-exercise-modal').classList.add('hidden');
+      document.getElementById('add-exercise-modal').classList.remove('flex');
+    }
+
+    function filterExerciseModalCategory(cat) {
+      currentModalCategory = cat;
+      renderExercisePickerList();
+    }
+
+    function renderExercisePickerList() {
+      const q = (document.getElementById('exercise-search-input').value || '').toLowerCase().trim();
+      const listEl = document.getElementById('exercise-picker-list');
+
+      const keys = Object.keys(EXERCISE_CATALOG).filter(k => {
+        const item = EXERCISE_CATALOG[k];
+        const matchCat = currentModalCategory === 'Alle' || item.category === currentModalCategory;
+        const matchQ = !q || item.name.toLowerCase().includes(q) || item.category.toLowerCase().includes(q);
+        return matchCat && matchQ;
+      });
+
+      listEl.innerHTML = keys.map(k => {
+        const item = EXERCISE_CATALOG[k];
+        const alreadyIn = gtSession.exercises.some(e => e.id === k);
+        return `
+          <div onclick="addExerciseToGtSession('${k}')" class="p-3 rounded-xl bg-iosDark border ${alreadyIn ? 'border-iosAccent/60' : 'border-iosBorder'} flex justify-between items-center cursor-pointer hover:border-iosAccent transition">
+            <div>
+              <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-iosCard text-iosAccent mr-1.5">${item.category}</span>
+              <span class="text-xs font-bold text-white">${item.name}</span>
+            </div>
+            <span class="text-xs font-bold ${alreadyIn ? 'text-recoveryGreen' : 'text-iosAccent'}">${alreadyIn ? '✓ Aktiv (+Satz)' : '+ Hinzufügen'}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function addExerciseToGtSession(exId) {
+      const existingIdx = gtSession.exercises.findIndex(e => e.id === exId);
+      if (existingIdx !== -1) {
+        addSetToGtExercise(existingIdx);
+      } else {
+        const cat = EXERCISE_CATALOG[exId] || { defaultSets: 2, defaultKg: 40, defaultReps: 10 };
+        const prev = getLastExerciseValuesBefore(exId, gtCurrentDate);
+        const count = cat.defaultSets || 2;
+        const sets = [];
+        for (let i = 0; i < count; i++) {
+          sets.push({
+            kg: prev ? prev.kg : (cat.defaultKg || 40),
+            reps: prev ? prev.reps : (cat.defaultReps || 10),
+            done: false
+          });
+        }
+        gtSession.exercises.push({ id: exId, sets });
+      }
+      closeAddExerciseModal();
+      renderGymTrackerUI();
+      alertUser(`${EXERCISE_CATALOG[exId]?.name || exId} zum Training hinzugefügt!`);
+    }
+
+    function addCustomExerciseToCatalog() {
+      const nameInput = document.getElementById('custom-exercise-name');
+      const name = nameInput.value.trim();
+      if (!name) return;
+      const id = 'custom_' + name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      EXERCISE_CATALOG[id] = {
+        id,
+        name,
+        category: currentModalCategory === 'Alle' ? 'Spezial' : currentModalCategory,
+        defaultSets: 2,
+        defaultKg: 40,
+        defaultReps: 10
+      };
+      nameInput.value = '';
+      saveStorage();
+      populateTrendSelectDropdown();
+      addExerciseToGtSession(id);
+    }
+
+    function saveGymTrackerWorkout() {
+      if (gtSession.exercises.length === 0) {
+        alertUser('Bitte füge mindestens eine Übung hinzu!');
+        return;
+      }
+
+      const notes = document.getElementById('gt-notes-input').value.trim();
+      const exObj = {};
+
+      gtSession.exercises.forEach(exItem => {
+        const activeSets = exItem.sets.filter(s => s.done);
+        const setsToSave = (activeSets.length > 0 ? activeSets : exItem.sets).map(s => ({
+          kg: parseFloat(s.kg) || 0,
+          reps: parseInt(s.reps) || 0,
+          done: true
+        }));
+
+        let bestSet = setsToSave[0] || { kg: 0, reps: 0 };
+        let best4RM = -1;
+        setsToSave.forEach(s => {
+          const val4 = calc4RM(s.kg, s.reps);
+          if (val4 > best4RM) {
+            best4RM = val4;
+            bestSet = s;
+          }
+        });
+
+        exObj[exItem.id] = {
+          kg: bestSet.kg,
+          reps: bestSet.reps,
+          sets: setsToSave
+        };
+      });
+
+      const existing = workoutLogs[gtCurrentDate] || {};
+      workoutLogs[gtCurrentDate] = {
+        ...existing,
+        type: gtSession.templateType === 'custom' ? 'gym1' : gtSession.templateType,
+        notes,
+        exercises: exObj
+      };
+
+      if (gtTimerInterval) {
+        clearInterval(gtTimerInterval);
+        gtTimerInterval = null;
+      }
+
+      saveStorage();
+      selectedDateStr = gtCurrentDate;
+      renderCalendar();
+      selectCalendarDate(gtCurrentDate);
+      renderStrengthOverviewAndAnalysis();
+      renderExerciseHistoryComparison();
+      updateOverviewUI();
+      alertUser(`Workout (${Object.keys(exObj).length} Übungen) gespeichert & ausgewertet!`);
+      switchTab('calendar');
+    }
+
+    // ==================== HEVY CSV IMPORT PARSER ====================
+    function parseCSVLine(line) {
+      const result = [];
+      let cur = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+          inQuotes = !inQuotes;
+        } else if ((ch === ',' || ch === ';') && !inQuotes) {
+          result.push(cur.trim());
+          cur = '';
+        } else {
+          cur += ch;
+        }
+      }
+      result.push(cur.trim());
+      return result;
+    }
+
+    function mapHevyExerciseNameToId(rawTitle) {
+      const t = (rawTitle || '').toLowerCase();
+      if (t.includes('leg press') || t.includes('beinpresse')) return 'legPress';
+      if ((t.includes('incline') && (t.includes('bench') || t.includes('press'))) || t.includes('schrägbank')) return 'incBench';
+      if (t.includes('iso-lateral') || t.includes('chest press') || t.includes('brustpresse') || t.includes('bankdrückmaschine')) return 'isoBench';
+      if (t.includes('bench press') || t.includes('bankdrücken')) return 'flatBenchBB';
+      if (t.includes('lat pulldown') || t.includes('latzug')) return 'lat';
+      if (t.includes('pull up') || t.includes('chin up') || t.includes('klimmz')) return 'pullUps';
+      if (t.includes('romanian') || t.includes('rdl') || t.includes('deadlift') || t.includes('kreuzheben')) return 'rdl';
+      if (t.includes('leg curl') || t.includes('beinbeuger')) return 'legCurlSeated';
+      if (t.includes('leg extension') || t.includes('beinstrecker')) return 'legExtension';
+      if (t.includes('lateral raise') || t.includes('seitheben')) return 'latRaise';
+      if (t.includes('tricep') || t.includes('trizeps') || t.includes('pushdown')) return 'triceps';
+      if (t.includes('bicep') || t.includes('curl') || t.includes('bizeps')) return 'biceps';
+      if (t.includes('calf') || t.includes('waden')) return 'calves';
+      if (t.includes('fly') || t.includes('butterfly') || t.includes('pec deck')) return 'pecDeck';
+      if (t.includes('face pull') || t.includes('reverse fly') || t.includes('rear delt')) return 'facePulls';
+      if (t.includes('shoulder press') || t.includes('overhead press') || t.includes('schulterdrücken')) return 'shoulderPress';
+      if (t.includes('row') || t.includes('rudern')) return 'row';
+
+      const cleanId = 'hevy_' + t.replace(/[^a-z0-9]/g, '_').slice(0, 24);
+      if (!EXERCISE_CATALOG[cleanId]) {
+        EXERCISE_CATALOG[cleanId] = {
+          id: cleanId,
+          name: rawTitle,
+          category: 'Hevy-Import',
+          defaultSets: 3,
+          defaultKg: 40,
+          defaultReps: 8
+        };
+      }
+      return cleanId;
+    }
+
+    function parseHevyDateToISO(rawDateStr) {
+      if (!rawDateStr) return null;
+      const isoMatch = rawDateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+      if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+      const normalized = rawDateStr.replace('Okt', 'Oct').replace('Mär', 'Mar').replace('Mai', 'May').replace('Dez', 'Dec');
+      const d = new Date(normalized);
+      if (!isNaN(d.getTime())) {
+        return formatDateISO(d);
+      }
+      return null;
+    }
+
+    function handleHevyCSVUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const text = e.target.result;
+          const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+          if (lines.length < 2) {
+            alertUser('CSV-Datei ist leer oder ungültig.');
+            return;
+          }
+
+          const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase());
+          const idxTitle = headers.findIndex(h => h === 'title' || h.includes('workout'));
+          const idxStart = headers.findIndex(h => h.includes('start_time') || h.includes('date') || h.includes('datum'));
+          const idxEx = headers.findIndex(h => h.includes('exercise_title') || h.includes('exercise') || h.includes('übung'));
+          const idxSetType = headers.findIndex(h => h.includes('set_type'));
+          const idxWeight = headers.findIndex(h => h.includes('weight') || h.includes('gewicht') || h === 'kg');
+          const idxReps = headers.findIndex(h => h.includes('reps') || h.includes('wdh'));
+
+          const importedByDate = {};
+          let importedSetsCount = 0;
+
+          for (let i = 1; i < lines.length; i++) {
+            const cols = parseCSVLine(lines[i]);
+            if (cols.length < 4) continue;
+
+            const setType = idxSetType !== -1 ? (cols[idxSetType] || '').toLowerCase() : 'normal';
+            if (setType === 'warmup') continue;
+
+            const isoDate = parseHevyDateToISO(cols[idxStart !== -1 ? idxStart : 1]);
+            if (!isoDate) continue;
+
+            const exTitle = cols[idxEx !== -1 ? idxEx : 4] || 'Übung';
+            const kg = parseFloat((cols[idxWeight !== -1 ? idxWeight : 9] || '0').replace(',', '.')) || 0;
+            const reps = parseInt(cols[idxReps !== -1 ? idxReps : 10] || '0') || 0;
+            const workoutTitle = idxTitle !== -1 ? cols[idxTitle] : 'Hevy Import';
+
+            if (reps <= 0 && kg <= 0) continue;
+
+            const exId = mapHevyExerciseNameToId(exTitle);
+            if (!importedByDate[isoDate]) {
+              importedByDate[isoDate] = {
+                type: 'gym1',
+                notes: `Hevy-Import: ${workoutTitle}`,
+                exercises: {}
+              };
+            }
+            if (!importedByDate[isoDate].exercises[exId]) {
+              importedByDate[isoDate].exercises[exId] = { kg: 0, reps: 0, sets: [] };
+            }
+            importedByDate[isoDate].exercises[exId].sets.push({ kg, reps, done: true });
+            importedSetsCount++;
+          }
+
+          const importedDates = Object.keys(importedByDate);
+          importedDates.forEach(d => {
+            const entry = importedByDate[d];
+            if (entry.exercises.legPress) entry.type = 'gym2';
+            Object.keys(entry.exercises).forEach(exId => {
+              const exObj = entry.exercises[exId];
+              let best = exObj.sets[0];
+              let best4 = -1;
+              exObj.sets.forEach(s => {
+                const v4 = calc4RM(s.kg, s.reps);
+                if (v4 > best4) { best4 = v4; best = s; }
+              });
+              exObj.kg = best.kg;
+              exObj.reps = best.reps;
+            });
+            workoutLogs[d] = entry;
+          });
+
+          saveStorage();
+          populateTrendSelectDropdown();
+          renderCalendar();
+          renderLoggedWorkoutsList();
+          renderStrengthOverviewAndAnalysis();
+          renderExerciseHistoryComparison();
+          loadGymTrackerForDate(gtCurrentDate);
+
+          const statusBox = document.getElementById('hevy-import-status');
+          if (statusBox) {
+            statusBox.classList.remove('hidden');
+            statusBox.innerHTML = `✓ <strong>Hevy-Import erfolgreich:</strong> ${importedDates.length} Trainings und ${importedSetsCount} Arbeitssätze wurden in deinen Kalender und deine Kraft-Statistiken übernommen!`;
+          }
+          alertUser(`${importedDates.length} Hevy-Workouts importiert!`);
+          closeSettingsModal();
+        } catch (err) {
+          console.error(err);
+          alertUser('Fehler beim Lesen der Hevy CSV-Datei.');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // ==================== CALENDAR & WORKOUT EDITOR ====================
+    function changeCalendarMonth(delta) {
+      currentCalMonth += delta;
+      if (currentCalMonth < 0) {
+        currentCalMonth = 11;
+        currentCalYear--;
+      } else if (currentCalMonth > 11) {
+        currentCalMonth = 0;
+        currentCalYear++;
+      }
+      renderCalendar();
+    }
+
+    function renderCalendar() {
+      const monthNames = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+      document.getElementById('cal-month-label').innerText = `${monthNames[currentCalMonth]} ${currentCalYear}`;
+
+      const grid = document.getElementById('calendar-grid');
+      const firstDay = new Date(currentCalYear, currentCalMonth, 1);
+      const daysInMonth = new Date(currentCalYear, currentCalMonth + 1, 0).getDate();
+      const startOffset = (firstDay.getDay() + 6) % 7; // Montag = 0
+
+      let html = '';
+      for (let i = 0; i < startOffset; i++) {
+        html += `<div class="h-10"></div>`;
+      }
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const iso = `${currentCalYear}-${String(currentCalMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const log = workoutLogs[iso];
+        const isSelected = iso === selectedDateStr;
+
+        let dotHtml = '';
+        if (log) {
+          let dotCol = 'bg-gray-500';
+          if (log.type.startsWith('gym')) dotCol = 'bg-iosAccent';
+          else if (log.type === 'run') dotCol = 'bg-recoveryGreen';
+          else if (log.type === 'bike') dotCol = 'bg-purple-400';
+
+          const hasDouble = log.secondUnit && log.secondUnit.type && log.secondUnit.type !== 'none';
+          dotHtml = `<div class="flex gap-0.5 justify-center mt-0.5">
+            <span class="w-1.5 h-1.5 rounded-full ${dotCol}"></span>
+            ${hasDouble ? '<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>' : ''}
+          </div>`;
+        }
+
+        html += `
+          <button onclick="selectCalendarDate('${iso}')" class="h-10 rounded-xl flex flex-col items-center justify-center text-xs font-bold transition ${isSelected ? 'bg-iosAccent text-white shadow-md' : 'bg-iosDark text-gray-200 hover:bg-iosCardHover border border-iosBorder'}">
+            <span>${day}</span>
+            ${dotHtml}
+          </button>
+        `;
+      }
+      grid.innerHTML = html;
+      renderLoggedWorkoutsList();
+    }
+
+    function selectCalendarDate(isoDate) {
+      selectedDateStr = isoDate;
+      renderCalendar();
+
+      const d = new Date(isoDate + 'T12:00:00');
+      const dayNames = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+      document.getElementById('cal-selected-date-title').innerText = `${dayNames[d.getDay()]}, ${formatDisplayDate(isoDate)}`;
+
+      const plan = getRecommendedPlanForDate(isoDate);
+      document.getElementById('cal-coach-suggestion-title').innerText = `Coach-Vorschlag: ${plan.title}`;
+      document.getElementById('cal-coach-suggestion-text').innerText = plan.reason;
+
+      const existingLog = workoutLogs[isoDate];
+      const badge = document.getElementById('cal-logged-badge');
+      const deleteBtn = document.getElementById('delete-workout-btn');
+
+      if (existingLog) {
+        badge.innerText = '✓ Gespeichert';
+        badge.className = 'text-[10px] font-bold px-2.5 py-1 rounded-full bg-recoveryGreen/20 text-recoveryGreen';
+        document.getElementById('workout-type-select').value = existingLog.type;
+        document.getElementById('workout-notes-input').value = existingLog.notes || '';
+        document.getElementById('second-workout-select').value = (existingLog.secondUnit && existingLog.secondUnit.type) ? existingLog.secondUnit.type : 'none';
+        if (existingLog.secondUnit && existingLog.secondUnit.type !== 'none') {
+          document.getElementById('sec-duration-input').value = existingLog.secondUnit.durationMin || 45;
+          document.getElementById('sec-hr-input').value = existingLog.secondUnit.avgHr || 135;
+          document.getElementById('sec-maxhr-input').value = existingLog.secondUnit.maxHr || 152;
+          document.getElementById('sec-gap-hours').value = existingLog.secondUnit.gapHours ?? 6;
+        }
+        deleteBtn.classList.remove('hidden');
+      } else {
+        badge.innerText = 'Noch offen';
+        badge.className = 'text-[10px] font-bold px-2.5 py-1 rounded-full bg-iosDark text-gray-400';
+        document.getElementById('workout-type-select').value = plan.suggestedType;
+        document.getElementById('workout-notes-input').value = '';
+        document.getElementById('second-workout-select').value = 'none';
+        deleteBtn.classList.add('hidden');
+      }
+
+      renderWorkoutEditorFields();
+      toggleSecondUnitFields();
+      showComparisonForDate(isoDate);
+    }
+
+    function toggleSecondUnitFields() {
+      const secType = document.getElementById('second-workout-select').value;
+      const box = document.getElementById('second-unit-fields');
+      if (secType && secType !== 'none') {
+        box.classList.remove('hidden');
+        evaluateDoubleDayImpact();
+      } else {
+        box.classList.add('hidden');
+      }
+    }
+
+    function evaluateDoubleDayImpact() {
+      const mainType = document.getElementById('workout-type-select').value;
+      const secType = document.getElementById('second-workout-select').value;
+      const dur = parseInt(document.getElementById('sec-duration-input')?.value) || 45;
+      const hr = parseInt(document.getElementById('sec-hr-input')?.value) || 135;
+      const gap = parseInt(document.getElementById('sec-gap-hours')?.value) ?? 6;
+      const box = document.getElementById('double-day-impact-box');
+      if (!box) return;
+
+      if (secType === 'bike' && gap >= 4 && hr <= 145) {
+        box.innerHTML = `<span class="text-recoveryGreen font-bold">✓ Ideales Hybrid-Pairing (${gap}h Pause):</span> Die mTOR-Proteinsynthese vom ${mainType.toUpperCase()} bleibt ungestört. ${dur} Min. Indoor-Bike bei Ø ${hr} bpm fördern die Kapillarisierung und senken deinen Ruhepuls ohne Kniebelastung.`;
+      } else if (gap < 4) {
+        box.innerHTML = `<span class="text-recoveryAmber font-bold">⚡ Kurze Pause (&lt;4 Std. zwischen Einheiten):</span> Erhöhte AMPK-Aktivierung und Glykogen-Entleerung. Nimm direkt nach Einheit 1 mindestens 40g Protein + 60g schnelle Kohlenhydrate zu dir! Der Coach plant morgen automatisch mehr Erholung ein.`;
+      } else {
+        box.innerHTML = `<span class="text-purple-300 font-bold">🔥 Hohe Tages-Gesamtlast (Double-Day mit Lauf/hohem Puls):</span> Starkes kardiovaskuläres Signal, aber hohe ZNS-Last. Der Coach überprüft morgen früh deinen niedrigsten Schlafpuls auf Rest-Ermüdung.`;
+      }
+    }
+
+    function renderWorkoutEditorFields() {
+      const type = document.getElementById('workout-type-select').value;
+      const container = document.getElementById('workout-editor-fields');
+      const existingLog = workoutLogs[selectedDateStr];
+
+      if (type.startsWith('gym')) {
+        const tpl = WORKOUT_TEMPLATES[type];
+        const baseIds = tpl.exercises.map(e => e.id);
+        const extraIds = (existingLog && existingLog.exercises)
+          ? Object.keys(existingLog.exercises).filter(id => !baseIds.includes(id))
+          : [];
+        const allExList = [
+          ...tpl.exercises,
+          ...extraIds.map(id => ({
+            id,
+            name: `➕ ${EXERCISE_CATALOG[id]?.name || id}`,
+            sets: `${existingLog.exercises[id].sets?.length || 2} Sätze (Zusatz)`,
+            defaultKg: existingLog.exercises[id].kg || 40,
+            defaultReps: existingLog.exercises[id].reps || 10
+          }))
+        ];
+
+        let html = `
+          <div class="flex justify-between items-center bg-iosAccent/10 border border-iosAccent/30 rounded-xl px-3 py-2 mb-2">
+            <span class="text-[11px] text-gray-200">Für Satz-für-Satz-Tracking & Zusatz-Übungen:</span>
+            <button type="button" onclick="gtCurrentDate='${selectedDateStr}'; switchTab('gymtracker');" class="text-[11px] font-bold text-iosAccent underline">Im Hevy Gym-Tracker öffnen &rarr;</button>
+          </div>
+          <div class="flex justify-between items-center text-[11px] text-gray-400 pb-1">
+            <span>Übung (inkl. Vorwert-Orientierung)</span>
+            <span>Top-Satz (kg × Wdh.)</span>
+          </div>
+        `;
+
+        allExList.forEach(ex => {
+          const prev = getLastExerciseValuesBefore(ex.id, selectedDateStr);
+          const savedEx = existingLog && existingLog.exercises && existingLog.exercises[ex.id];
+          const valKg = savedEx ? savedEx.kg : (prev ? prev.kg : ex.defaultKg);
+          const valReps = savedEx ? savedEx.reps : (prev ? prev.reps : ex.defaultReps);
+          const setsBadge = (savedEx && savedEx.sets) ? `${savedEx.sets.length} Sätze geloggt` : ex.sets;
+          const prevText = prev ? `Letztes Mal (${formatDisplayDate(prev.date).slice(0,6)}): ${prev.kg} kg × ${prev.reps}` : `Ziel-Richtwert: ${ex.sets}`;
+
+          html += `
+            <div class="bg-iosDark p-3 rounded-xl border border-iosBorder flex items-center justify-between gap-2">
+              <div class="flex-1 min-w-0">
+                <p class="text-xs font-bold text-white truncate">${ex.name}</p>
+                <p class="text-[10px] text-gray-400 mt-0.5">${setsBadge} · <span class="text-iosAccent">${prevText}</span></p>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <div class="w-16">
+                  <input type="number" step="0.5" id="ex-kg-${ex.id}" value="${valKg}" class="w-full bg-iosCard border border-iosBorder rounded-lg p-1.5 text-center text-xs font-bold text-white focus:border-iosAccent focus:outline-none">
+                  <span class="block text-[9px] text-center text-gray-500 mt-0.5">kg</span>
+                </div>
+                <span class="text-gray-500 text-xs font-bold">×</span>
+                <div class="w-12">
+                  <input type="number" step="1" id="ex-reps-${ex.id}" value="${valReps}" class="w-full bg-iosCard border border-iosBorder rounded-lg p-1.5 text-center text-xs font-bold text-white focus:border-iosAccent focus:outline-none">
+                  <span class="block text-[9px] text-center text-gray-500 mt-0.5">Wdh</span>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        container.innerHTML = html;
+
+      } else if (type === 'run') {
+        const dist = (existingLog && existingLog.distanceKm) ? existingLog.distanceKm : 5.0;
+        const timeDecimal = (existingLog && existingLog.timeMin) ? existingLog.timeMin : 22.4;
+        const wholeMin = Math.floor(timeDecimal);
+        const remSec = Math.round((timeDecimal - wholeMin) * 60);
+        const hr = (existingLog && existingLog.avgHr) ? existingLog.avgHr : 175;
+        const maxHr = (existingLog && existingLog.maxHr) ? existingLog.maxHr : 189;
+        const runType = (existingLog && existingLog.runType) ? existingLog.runType : 'Tempolauf';
+
+        container.innerHTML = `
+          <div class="bg-iosDark p-3.5 rounded-xl border border-iosBorder space-y-3">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex gap-1 flex-wrap">
+                <button type="button" onclick="setRunDistQuick(3.0)" class="px-2 py-1 rounded-lg bg-iosCard border border-iosBorder text-[10px] font-bold text-gray-300 hover:text-white">3 km</button>
+                <button type="button" onclick="setRunDistQuick(5.0)" class="px-2 py-1 rounded-lg bg-iosCard border border-iosBorder text-[10px] font-bold text-recoveryGreen hover:text-white">5 km</button>
+                <button type="button" onclick="setRunDistQuick(6.0)" class="px-2 py-1 rounded-lg bg-iosCard border border-iosBorder text-[10px] font-bold text-gray-300 hover:text-white">6 km</button>
+                <button type="button" onclick="setRunDistQuick(8.0)" class="px-2 py-1 rounded-lg bg-iosCard border border-iosBorder text-[10px] font-bold text-gray-300 hover:text-white">8 km</button>
+                <button type="button" onclick="setRunDistQuick(10.0)" class="px-2 py-1 rounded-lg bg-iosCard border border-iosBorder text-[10px] font-bold text-gray-300 hover:text-white">10 km</button>
+              </div>
+              <select id="run-type-input" class="bg-iosCard border border-iosBorder rounded-lg px-2 py-1 text-[11px] font-bold text-white">
+                <option value="Tempolauf" ${runType === 'Tempolauf' ? 'selected' : ''}>⚡ Tempolauf / Schwelle</option>
+                <option value="All-Out Test" ${runType === 'All-Out Test' ? 'selected' : ''}>🔥 All-Out Bestzeit-Test</option>
+                <option value="Intervalle" ${runType === 'Intervalle' ? 'selected' : ''}>⏱️ Intervalle / Speed</option>
+                <option value="Lockerer Lauf" ${runType === 'Lockerer Lauf' ? 'selected' : ''}>🌿 Lockerer Dauerlauf</option>
+              </select>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="text-[10px] text-gray-400 block mb-1">Distanz (km variabel)</label>
+                <input type="number" step="0.05" id="run-dist-input" value="${dist}" oninput="updateRunPacePreview()" class="w-full bg-iosCard border border-iosBorder rounded-lg p-2 text-xs font-bold text-white">
+              </div>
+              <div>
+                <label class="text-[10px] text-gray-400 block mb-1">Minuten</label>
+                <input type="number" step="1" id="run-min-input" value="${wholeMin}" oninput="updateRunPacePreview()" class="w-full bg-iosCard border border-iosBorder rounded-lg p-2 text-xs font-bold text-recoveryGreen">
+              </div>
+              <div>
+                <label class="text-[10px] text-gray-400 block mb-1">Sekunden</label>
+                <input type="number" step="1" min="0" max="59" id="run-sec-input" value="${remSec}" oninput="updateRunPacePreview()" class="w-full bg-iosCard border border-iosBorder rounded-lg p-2 text-xs font-bold text-recoveryGreen">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="text-[10px] text-gray-400 block mb-1">Ø Puls (Durchschnitt bpm)</label>
+                <input type="number" step="1" id="run-hr-input" value="${hr}" class="w-full bg-iosCard border border-iosBorder rounded-lg p-2 text-xs font-bold text-white">
+              </div>
+              <div>
+                <label class="text-[10px] text-gray-400 block mb-1">Maximalpuls (Max HF bpm)</label>
+                <input type="number" step="1" id="run-maxhr-input" value="${maxHr}" class="w-full bg-iosCard border border-iosBorder rounded-lg p-2 text-xs font-bold text-recoveryAmber">
+              </div>
+            </div>
+
+            <div id="run-live-pace-box" class="p-2.5 rounded-lg bg-iosCard border border-iosBorder text-[11px] text-gray-200 flex justify-between items-center"></div>
+          </div>
+        `;
+        updateRunPacePreview();
+
+      } else if (type === 'bike') {
+        const dur = (existingLog && existingLog.durationMin) ? existingLog.durationMin : 60;
+        const hr = (existingLog && existingLog.avgHr) ? existingLog.avgHr : 136;
+        const maxHr = (existingLog && existingLog.maxHr) ? existingLog.maxHr : 148;
+
+        container.innerHTML = `
+          <div class="grid grid-cols-3 gap-2 bg-iosDark p-3.5 rounded-xl border border-iosBorder">
+            <div>
+              <label class="text-[10px] text-gray-400 block mb-1">Dauer (Min)</label>
+              <input type="number" step="5" id="bike-dur-input" value="${dur}" class="w-full bg-iosCard border border-iosBorder rounded-lg p-2 text-xs font-bold text-purple-400">
+            </div>
+            <div>
+              <label class="text-[10px] text-gray-400 block mb-1">Ø Puls (Z2: 130–145)</label>
+              <input type="number" step="1" id="bike-hr-input" value="${hr}" class="w-full bg-iosCard border border-iosBorder rounded-lg p-2 text-xs font-bold text-white">
+            </div>
+            <div>
+              <label class="text-[10px] text-gray-400 block mb-1">Max Puls (bpm)</label>
+              <input type="number" step="1" id="bike-maxhr-input" value="${maxHr}" class="w-full bg-iosCard border border-iosBorder rounded-lg p-2 text-xs font-bold text-recoveryAmber">
+            </div>
+          </div>
+          <p class="text-[11px] text-gray-400">🚴‍♂️ 0 % Stoßbelastung für die Knie – maximales Schlagvolumen für dein Ruhepuls-Ziel (&lt; 50 bpm).</p>
+        `;
+      } else {
+        container.innerHTML = `
+          <div class="p-3.5 rounded-xl bg-iosDark border border-iosBorder text-xs text-gray-300">
+            🛑 <strong>Ruhetag:</strong> Volle Regeneration für das zentrale Nervensystem, Sehnen und Muskulatur.
+          </div>
+        `;
+      }
+    }
+
+    function setRunDistQuick(kmVal) {
+      const distEl = document.getElementById('run-dist-input');
+      if (distEl) {
+        distEl.value = kmVal;
+        updateRunPacePreview();
+      }
+    }
+
+    function updateRunPacePreview() {
+      const box = document.getElementById('run-live-pace-box');
+      if (!box) return;
+      const dist = parseFloat(document.getElementById('run-dist-input')?.value) || 5.0;
+      const m = parseInt(document.getElementById('run-min-input')?.value) || 0;
+      const s = parseInt(document.getElementById('run-sec-input')?.value) || 0;
+      const totalMin = m + (s / 60);
+      const metrics = calcRunMetrics(dist, totalMin);
+      const eqM = Math.floor(metrics.eq5kMin);
+      const eqS = String(Math.round((metrics.eq5kMin - eqM) * 60)).padStart(2, '0');
+
+      box.innerHTML = `
+        <span>🏃‍♂️ <strong>Pace:</strong> <span class="text-recoveryGreen font-bold">${metrics.paceStr}</span></span>
+        <span>🎯 <strong>5k-Äquivalent:</strong> <span class="text-iosAccent font-bold">${eqM}:${eqS} Min</span> (Ziel &lt;20:00)</span>
+      `;
+    }
+
+    function saveWorkoutForSelectedDate() {
+      const type = document.getElementById('workout-type-select').value;
+      const notes = document.getElementById('workout-notes-input').value.trim();
+      const prevExisting = workoutLogs[selectedDateStr];
+
+      let entry = { type, notes };
+
+      if (type.startsWith('gym')) {
+        const tpl = WORKOUT_TEMPLATES[type];
+        const baseIds = tpl.exercises.map(e => e.id);
+        const extraIds = (prevExisting && prevExisting.exercises)
+          ? Object.keys(prevExisting.exercises).filter(id => !baseIds.includes(id))
+          : [];
+        const allIds = [...baseIds, ...extraIds];
+
+        entry.exercises = {};
+        allIds.forEach(exId => {
+          const kgEl = document.getElementById(`ex-kg-${exId}`);
+          const repsEl = document.getElementById(`ex-reps-${exId}`);
+          if (kgEl && repsEl) {
+            const kg = parseFloat(kgEl.value) || 0;
+            const reps = parseInt(repsEl.value) || 0;
+            const existingSets = prevExisting?.exercises?.[exId]?.sets;
+            entry.exercises[exId] = {
+              kg,
+              reps,
+              sets: existingSets ? existingSets : [{ kg, reps, done: true }]
+            };
+          }
+        });
+      } else if (type === 'run') {
+        const dist = parseFloat(document.getElementById('run-dist-input').value) || 5.0;
+        const m = parseInt(document.getElementById('run-min-input').value) || 22;
+        const s = parseInt(document.getElementById('run-sec-input').value) || 0;
+        entry.distanceKm = dist;
+        entry.timeMin = Math.round((m + (s / 60)) * 100) / 100;
+        entry.avgHr = parseInt(document.getElementById('run-hr-input').value) || 175;
+        entry.maxHr = parseInt(document.getElementById('run-maxhr-input').value) || 189;
+        entry.runType = document.getElementById('run-type-input')?.value || 'Tempolauf';
+      } else if (type === 'bike') {
+        entry.durationMin = parseInt(document.getElementById('bike-dur-input').value) || 60;
+        entry.avgHr = parseInt(document.getElementById('bike-hr-input').value) || 135;
+        entry.maxHr = parseInt(document.getElementById('bike-maxhr-input').value) || 148;
+      }
+
+      const secType = document.getElementById('second-workout-select').value;
+      if (secType && secType !== 'none') {
+        entry.secondUnit = {
+          type: secType,
+          durationMin: parseInt(document.getElementById('sec-duration-input').value) || 45,
+          avgHr: parseInt(document.getElementById('sec-hr-input').value) || 135,
+          maxHr: parseInt(document.getElementById('sec-maxhr-input')?.value) || 152,
+          gapHours: parseInt(document.getElementById('sec-gap-hours').value) || 6
+        };
+      }
+
+      workoutLogs[selectedDateStr] = entry;
+      saveStorage();
+      renderCalendar();
+      selectCalendarDate(selectedDateStr);
+      renderLoggedWorkoutsList();
+      renderStrengthOverviewAndAnalysis();
+      renderExerciseHistoryComparison();
+      updateOverviewUI();
+      alertUser(`Training für ${formatDisplayDate(selectedDateStr)} gespeichert!`);
+    }
+
+    function deleteWorkoutForSelectedDate() {
+      if (workoutLogs[selectedDateStr]) {
+        delete workoutLogs[selectedDateStr];
+        saveStorage();
+        renderCalendar();
+        selectCalendarDate(selectedDateStr);
+        renderStrengthOverviewAndAnalysis();
+        renderExerciseHistoryComparison();
+        updateOverviewUI();
+        alertUser('Training gelöscht.');
+      }
+    }
+
+    function showComparisonForDate(isoDate) {
+      const box = document.getElementById('workout-comparison-box');
+      const content = document.getElementById('workout-comparison-content');
+      const currentLog = workoutLogs[isoDate];
+      if (!currentLog) {
+        box.classList.add('hidden');
+        return;
+      }
+
+      if (currentLog.type.startsWith('gym') && currentLog.exercises) {
+        const lines = [];
+        Object.keys(currentLog.exercises).forEach(exId => {
+          const cur = currentLog.exercises[exId];
+          const prev = getLastExerciseValuesBefore(exId, isoDate);
+          const exName = EXERCISE_CATALOG[exId]?.name || exId;
+          const cur4RM = calc4RM(cur.kg, cur.reps);
+          if (prev) {
+            const prev4RM = calc4RM(prev.kg, prev.reps);
+            const diff = (cur4RM - prev4RM).toFixed(1);
+            const col = diff >= 0 ? 'text-recoveryGreen font-bold' : 'text-recoveryAmber';
+            lines.push(`<div>• <strong>${exName}:</strong> ${cur.kg}kg × ${cur.reps} (4RM: ${cur4RM.toFixed(1)}kg) vs. ${prev.kg}kg × ${prev.reps} &rarr; <span class="${col}">${diff >= 0 ? '+' + diff : diff} kg</span></div>`);
+          } else {
+            lines.push(`<div>• <strong>${exName}:</strong> ${cur.kg}kg × ${cur.reps} (4RM-Basiswert: ${cur4RM.toFixed(1)}kg)</div>`);
+          }
+        });
+        content.innerHTML = lines.join('');
+        box.classList.remove('hidden');
+
+      } else if (currentLog.type === 'run') {
+        const curMetrics = calcRunMetrics(currentLog.distanceKm || 5.0, currentLog.timeMin);
+        const runHist = getExerciseChronology('run5k').filter(r => r.date < isoDate);
+        const maxHrText = currentLog.maxHr ? ` | Max: ${currentLog.maxHr} bpm` : '';
+        if (runHist.length > 0) {
+          const prevRun = runHist[runHist.length - 1];
+          const diffEq = (curMetrics.eq5kMin - prevRun.val).toFixed(2);
+          const color = diffEq <= 0 ? 'text-recoveryGreen font-bold' : 'text-recoveryAmber';
+          content.innerHTML = `<div>• <strong>${currentLog.runType || 'Lauf'} (${currentLog.distanceKm} km):</strong> Pace <strong>${curMetrics.paceStr}</strong> (Ø ${currentLog.avgHr} bpm${maxHrText}) · 5k-Äquivalent: <strong>${curMetrics.eq5kMin.toFixed(1)} Min</strong> vs. ${prevRun.val.toFixed(1)} Min am ${formatDisplayDate(prevRun.date)} &rarr; <span class="${color}">${diffEq <= 0 ? diffEq + ' Min schneller!' : '+' + diffEq + ' Min'}</span></div>`;
+        } else {
+          content.innerHTML = `<div>• <strong>${currentLog.runType || 'Lauf'} (${currentLog.distanceKm} km):</strong> Pace <strong>${curMetrics.paceStr}</strong> (Ø ${currentLog.avgHr} bpm${maxHrText}) · 5k-Äquivalent: ${curMetrics.eq5kMin.toFixed(1)} Min gespeichert.</div>`;
+        }
+        box.classList.remove('hidden');
+
+      } else if (currentLog.type === 'bike') {
+        const maxHrText = currentLog.maxHr ? ` (Max: ${currentLog.maxHr} bpm)` : '';
+        content.innerHTML = `<div>• <strong>Indoor-Bike Zone 2:</strong> ${currentLog.durationMin} Min @ Ø ${currentLog.avgHr} bpm${maxHrText} gespeichert (Knie-schonendes Herzkreislauf-Volumen).</div>`;
+        box.classList.remove('hidden');
+      } else {
+        box.classList.add('hidden');
+      }
+    }
+
+    function renderLoggedWorkoutsList() {
+      const listEl = document.getElementById('logged-workouts-list');
+      if (!listEl) return;
+      const dates = Object.keys(workoutLogs).sort().reverse().slice(0, 10);
+      const labels = {
+        gym1: '🏋️‍♂️ Gym Tag 1 (OK A)',
+        gym2: '🦵 Gym Tag 2 (Beinpresse)',
+        gym3: '⚡ Gym Tag 3 (2-Satz GK)',
+        run: '🏃‍♂️ Laufeinheit',
+        bike: '🚴‍♂️ Indoor-Bike Z2',
+        rest: '🛑 Ruhetag'
+      };
+
+      listEl.innerHTML = dates.map(d => {
+        const log = workoutLogs[d];
+        const doubleBadge = (log.secondUnit && log.secondUnit.type && log.secondUnit.type !== 'none')
+          ? `<span class="ml-1.5 text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold">+ 2. Einheit</span>`
+          : '';
+        return `
+          <div onclick="selectCalendarDate('${d}')" class="p-2.5 rounded-xl bg-iosDark border border-iosBorder flex justify-between items-center cursor-pointer hover:border-iosAccent transition">
+            <div>
+              <span class="text-xs font-bold text-white">${formatDisplayDate(d)}</span> · <span class="text-xs text-iosAccent font-semibold">${labels[log.type] || log.type}</span>${doubleBadge}
+              <p class="text-[10px] text-gray-400 truncate max-w-[230px]">${log.notes || 'Tippen zum Bearbeiten'}</p>
+            </div>
+            <span class="text-xs text-gray-400">&rarr;</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ==================== KRAFT & GRAPHISCHE ANALYSE ====================
+    function getExerciseChronology(exId) {
+      const dates = Object.keys(workoutLogs).sort();
+      const history = [];
+
+      dates.forEach(d => {
+        const log = workoutLogs[d];
+        if (!log) return;
+
+        if (exId === 'run5k') {
+          if (log.type === 'run') {
+            const dist = log.distanceKm || 5.0;
+            const m = calcRunMetrics(dist, log.timeMin);
+            history.push({
+              date: d,
+              timeMin: log.timeMin,
+              distanceKm: dist,
+              avgHr: log.avgHr,
+              maxHr: log.maxHr || (log.avgHr ? log.avgHr + 13 : 188),
+              runType: log.runType || 'Tempolauf',
+              paceStr: m.paceStr,
+              val: m.eq5kMin
+            });
+          } else if (log.secondUnit && log.secondUnit.type === 'run') {
+            const m = calcRunMetrics(5.0, log.secondUnit.durationMin);
+            history.push({
+              date: d,
+              timeMin: log.secondUnit.durationMin,
+              distanceKm: 5.0,
+              avgHr: log.secondUnit.avgHr,
+              maxHr: log.secondUnit.maxHr || 186,
+              runType: 'Double-Day Run',
+              paceStr: m.paceStr,
+              val: m.eq5kMin
+            });
+          }
+        } else if (exId === 'bikeZ2') {
+          if (log.type === 'bike') {
+            history.push({ date: d, durationMin: log.durationMin, avgHr: log.avgHr, maxHr: log.maxHr || 148, val: log.durationMin });
+          } else if (log.secondUnit && log.secondUnit.type === 'bike') {
+            history.push({ date: d, durationMin: log.secondUnit.durationMin, avgHr: log.secondUnit.avgHr, maxHr: log.secondUnit.maxHr || 148, val: log.secondUnit.durationMin, isDouble: true });
+          }
+        } else if (log.exercises && log.exercises[exId]) {
+          const exEntry = log.exercises[exId];
+          const { kg, reps } = exEntry;
+          const orm = calc1RM(kg, reps);
+          const fourRm = calc4RM(kg, reps);
+          const setsCount = exEntry.sets ? exEntry.sets.length : 1;
+          history.push({ date: d, kg, reps, orm, fourRm, setsCount, val: Math.round(fourRm * 10) / 10 });
+        }
+      });
+      return history;
+    }
+
+    function renderStrengthOverviewAndAnalysis() {
+      const lpHist = getExerciseChronology('legPress');
+      const isoHist = getExerciseChronology('isoBench');
+      const incHist = getExerciseChronology('incBench');
+      const rowHist = getExerciseChronology('row');
+      const runHist = getExerciseChronology('run5k');
+      const latestSleep = sleepHistory[sleepHistory.length - 1] || DEFAULT_SLEEP[DEFAULT_SLEEP.length - 1];
+
+      const curLp = lpHist.length ? lpHist[lpHist.length - 1].fourRm : 205;
+      const curIso = isoHist.length ? isoHist[isoHist.length - 1].fourRm : 92;
+      const curInc = incHist.length ? incHist[incHist.length - 1].fourRm : 33;
+      const curRow = rowHist.length ? rowHist[rowHist.length - 1].fourRm : 86;
+      const curRun = runHist.length ? runHist[runHist.length - 1] : { val: 22.4, timeMin: 22.4, distanceKm: 5.0, paceStr: '4:28 /km', avgHr: 176, maxHr: 189 };
+
+      // Freies Bankdrück-Äquivalent auf 3–5 Wdh. (Hebel 0.85 für Isolat. Maschine + KH-Schrägbank)
+      const freeBench4RM = Math.round((curIso * 0.85 * 0.6) + ((curInc * 2 * 1.15) * 0.4));
+
+      // Update Mini Bars on Overview Tab
+      document.getElementById('mini-current-lp').innerText = Math.round(curLp);
+      document.getElementById('mini-bar-lp').style.width = `${Math.min(100, Math.round((curLp / 250) * 100))}%`;
+      document.getElementById('mini-current-bench').innerText = freeBench4RM;
+      document.getElementById('mini-bar-bench').style.width = `${Math.min(100, Math.round((freeBench4RM / 100) * 100))}%`;
+      document.getElementById('mini-current-row').innerText = Math.round(curRow);
+      document.getElementById('mini-bar-row').style.width = `${Math.min(100, Math.round((curRow / 100) * 100))}%`;
+
+      const goals = [
+        {
+          title: '1. Beinpresse 45° (Ziel: 250 kg × 3–5 Wdh.)',
+          currentText: `${Math.round(curLp)} kg (×3–5)`,
+          pct: Math.min(100, Math.round((curLp / 250) * 100)),
+          color: 'bg-iosAccent',
+          sub: `Aktuelles 4RM-Arbeitsgewicht: ${curLp.toFixed(1)} kg · Noch ${Math.max(0, Math.round(250 - curLp))} kg bis zu 250 kg auf 3–5 Wdh.`
+        },
+        {
+          title: '2. Bankdrücken frei Äquivalent (Ziel: 100 kg × 3–5 Wdh.)',
+          currentText: `~${freeBench4RM} kg (×3–5)`,
+          pct: Math.min(100, Math.round((freeBench4RM / 100) * 100)),
+          color: 'bg-recoveryGreen',
+          sub: `Berechnet aus ${Math.round(curIso)} kg Isolat.-Maschine (×0.85) & ${Math.round(curInc)} kg KH-Schrägbank. Zielwert an der Maschine: ~118 kg × 3–5 Wdh.`
+        },
+        {
+          title: '3. Rudern Maschine / eng (Ziel: 100 kg × 3–5 Wdh.)',
+          currentText: `${Math.round(curRow)} kg (×3–5)`,
+          pct: Math.min(100, Math.round((curRow / 100) * 100)),
+          color: 'bg-amber-400',
+          sub: `Aktuelles 4RM-Arbeitsgewicht: ${curRow.toFixed(1)} kg · Noch ${Math.max(0, Math.round(100 - curRow))} kg bis zum 100-kg-Arbeitssatz.`
+        },
+        {
+          title: '4. Laufen & 5-km-Äquivalent (Ziel: Sub 20:00 Min)',
+          currentText: `${(curRun.val || curRun.timeMin).toFixed(1)} Min`,
+          pct: Math.max(15, Math.min(100, Math.round(((26 - (curRun.val || curRun.timeMin)) / (26 - 19.99)) * 100))),
+          color: 'bg-emerald-400',
+          sub: `Letzter Lauf: ${curRun.distanceKm || 5} km in ${curRun.timeMin.toFixed(1)} Min (Pace: ${curRun.paceStr || '4:28 /km'} | Ø ${curRun.avgHr || 176} bpm | Max ${curRun.maxHr || 189} bpm).`
+        },
+        {
+          title: '5. Ruhe-HF & Niedrigster Schlafpuls (Ziel: < 50 bpm)',
+          currentText: `${latestSleep.rhr} / ${latestSleep.minHr ?? (latestSleep.rhr - 5)} bpm`,
+          pct: Math.max(15, Math.min(100, Math.round(((60 - latestSleep.rhr) / (60 - 49)) * 100))),
+          color: 'bg-purple-400',
+          sub: `Tages-Ruhepuls: ${latestSleep.rhr} bpm · Niedrigster nächtlicher Schlafpuls: ${latestSleep.minHr ?? (latestSleep.rhr - 5)} bpm.`
+        }
+      ];
+
+      const container = document.getElementById('goals-detailed-bars');
+      if (container) {
+        container.innerHTML = goals.map(g => `
+          <div>
+            <div class="flex justify-between text-xs font-bold mb-1">
+              <span class="text-white">${g.title}</span>
+              <span class="text-iosAccent">${g.currentText} (${g.pct}%)</span>
+            </div>
+            <div class="w-full bg-iosDark rounded-full h-2.5 border border-iosBorder overflow-hidden">
+              <div class="${g.color} h-full rounded-full transition-all duration-500" style="width:${g.pct}%"></div>
+            </div>
+            <p class="text-[11px] text-gray-400 mt-1">${g.sub}</p>
+          </div>
+        `).join('');
+      }
+    }
+
+    function renderPerformanceSVGChart(dataPoints, targetVal, unitSuffix, invertY = false) {
+      const container = document.getElementById('svg-chart-container');
+      if (!container) return;
+      if (!dataPoints || dataPoints.length === 0) {
+        container.innerHTML = `<p class="text-xs text-gray-500">Noch keine Datenpunkte für diese Auswahl vorhanden.</p>`;
+        return;
+      }
+
+      const w = 340, h = 165, padL = 34, padR = 18, padT = 22, padB = 26;
+      const vals = dataPoints.map(d => d.val);
+      if (targetVal) vals.push(targetVal);
+
+      let minV = Math.min(...vals);
+      let maxV = Math.max(...vals);
+      if (minV === maxV) { minV -= 5; maxV += 5; }
+      const range = maxV - minV;
+      minV -= range * 0.12;
+      maxV += range * 0.15;
+
+      const getX = (idx) => dataPoints.length === 1 ? w / 2 : padL + (idx / (dataPoints.length - 1)) * (w - padL - padR);
+      const getY = (v) => {
+        const norm = (v - minV) / (maxV - minV);
+        return invertY ? padT + norm * (h - padT - padB) : (h - padB) - norm * (h - padT - padB);
+      };
+
+      const pts = dataPoints.map((d, i) => `${getX(i).toFixed(1)},${getY(d.val).toFixed(1)}`).join(' ');
+      const targetY = targetVal ? getY(targetVal) : null;
+
+      const circlesHtml = dataPoints.map((d, i) => {
+        const cx = getX(i).toFixed(1);
+        const cy = getY(d.val).toFixed(1);
+        const shortD = formatDisplayDate(d.date).slice(0, 5);
+        return `
+          <g class="cursor-pointer" onclick="switchTab('calendar'); selectCalendarDate('${d.date}');">
+            <circle cx="${cx}" cy="${cy}" r="4.5" fill="#3b82f6" stroke="#0f1015" stroke-width="2" />
+            <text x="${cx}" y="${cy - 8}" text-anchor="middle" fill="#e5e7eb" font-size="9" font-weight="bold">${d.val}${unitSuffix}</text>
+            <text x="${cx}" y="${h - 7}" text-anchor="middle" fill="#9ca3af" font-size="8.5">${shortD}</text>
+          </g>
+        `;
+      }).join('');
+
+      container.innerHTML = `
+        <svg viewBox="0 0 ${w} ${h}" class="w-full h-full">
+          ${targetY !== null ? `
+            <line x1="${padL}" y1="${targetY}" x2="${w - padR}" y2="${targetY}" stroke="#34c759" stroke-width="1.3" stroke-dasharray="4 3" />
+            <text x="${w - padR}" y="${targetY - 4}" text-anchor="end" fill="#34c759" font-size="8.5" font-weight="bold">Ziel: ${targetVal}${unitSuffix}</text>
+          ` : ''}
+          <polyline fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="${pts}" />
+          ${circlesHtml}
+        </svg>
+      `;
+    }
+
+    function renderDualHeartRateSVGChart(sleepList) {
+      const container = document.getElementById('svg-chart-container');
+      if (!container || sleepList.length === 0) return;
+
+      const w = 340, h = 165, padL = 30, padR = 18, padT = 22, padB = 26;
+      const allVals = [50];
+      sleepList.forEach(s => {
+        allVals.push(s.rhr);
+        allVals.push(s.minHr ?? (s.rhr - 5));
+      });
+      const minV = Math.min(...allVals) - 2;
+      const maxV = Math.max(...allVals) + 2;
+
+      const getX = (i) => sleepList.length === 1 ? w / 2 : padL + (i / (sleepList.length - 1)) * (w - padL - padR);
+      const getY = (v) => (h - padB) - ((v - minV) / (maxV - minV)) * (h - padT - padB);
+
+      const ptsRhr = sleepList.map((s, i) => `${getX(i).toFixed(1)},${getY(s.rhr).toFixed(1)}`).join(' ');
+      const ptsMin = sleepList.map((s, i) => `${getX(i).toFixed(1)},${getY(s.minHr ?? (s.rhr - 5)).toFixed(1)}`).join(' ');
+      const target50Y = getY(50);
+
+      container.innerHTML = `
+        <svg viewBox="0 0 ${w} ${h}" class="w-full h-full">
+          <line x1="${padL}" y1="${target50Y}" x2="${w - padR}" y2="${target50Y}" stroke="#ff9f0a" stroke-width="1" stroke-dasharray="3 3" />
+          <text x="${w - padR}" y="${target50Y - 4}" text-anchor="end" fill="#ff9f0a" font-size="8">50 bpm Schwelle</text>
+          <polyline fill="none" stroke="#3b82f6" stroke-width="2.2" points="${ptsRhr}" />
+          <polyline fill="none" stroke="#34c759" stroke-width="2" stroke-dasharray="3 2" points="${ptsMin}" />
+          ${sleepList.map((s, i) => {
+            const cx = getX(i).toFixed(1);
+            const y1 = getY(s.rhr).toFixed(1);
+            const mHr = s.minHr ?? (s.rhr - 5);
+            const y2 = getY(mHr).toFixed(1);
+            return `
+              <circle cx="${cx}" cy="${y1}" r="3.5" fill="#3b82f6" />
+              <text x="${cx}" y="${y1 - 6}" text-anchor="middle" fill="#93c5fd" font-size="8" font-weight="bold">${s.rhr}</text>
+              <circle cx="${cx}" cy="${y2}" r="3.5" fill="#34c759" />
+              <text x="${cx}" y="${Number(y2) + 11}" text-anchor="middle" fill="#86efac" font-size="8" font-weight="bold">${mHr}</text>
+              <text x="${cx}" y="${h - 6}" text-anchor="middle" fill="#9ca3af" font-size="8">${formatDisplayDate(s.date).slice(0,5)}</text>
+            `;
+          }).join('')}
+        </svg>
+      `;
+    }
+
+    function renderExerciseHistoryComparison() {
+      const exId = document.getElementById('exercise-trend-select')?.value || 'legPress';
+      const yLabelEl = document.getElementById('chart-y-label');
+      const targetBadgeEl = document.getElementById('chart-target-badge');
+      const summaryEl = document.getElementById('exercise-trend-summary');
+      const tableEl = document.getElementById('exercise-history-table');
+
+      if (exId === 'rhrTrend') {
+        yLabelEl.innerText = 'Blau = Tages-Ruhepuls (RHR) · Grün = Niedrigster nächtlicher Schlafpuls';
+        targetBadgeEl.innerText = 'Ziel: RHR < 50 bpm';
+        const recentSleep = sleepHistory.slice(-10);
+        renderDualHeartRateSVGChart(recentSleep);
+
+        const latest = recentSleep[recentSleep.length - 1];
+        const minH = latest.minHr ?? (latest.rhr - 5);
+        summaryEl.innerHTML = `<strong>Herzfrequenz-Analyse:</strong> Dein aktueller Tages-Ruhepuls liegt bei <strong>${latest.rhr} bpm</strong>, dein niedrigster Schlafpuls der Nacht bei <strong>${minH} bpm</strong> (Nächtliche Absenkung: ${latest.rhr - minH} bpm).`;
+        tableEl.innerHTML = [...recentSleep].reverse().map(s => `
+          <div class="p-2.5 rounded-lg bg-iosCard border border-iosBorder flex justify-between items-center text-xs">
+            <span class="font-bold text-white">${formatDisplayDate(s.date)}</span>
+            <span>RHR: <strong class="text-iosAccent">${s.rhr} bpm</strong> · Min. Schlaf: <strong class="text-recoveryGreen">${s.minHr ?? (s.rhr - 5)} bpm</strong></span>
+          </div>
+        `).join('');
+        return;
+      }
+
+      const hist = getExerciseChronology(exId);
+      if (hist.length === 0) {
+        renderPerformanceSVGChart([], null, '');
+        summaryEl.innerHTML = 'Noch keine Einträge für diese Übung geloggt.';
+        tableEl.innerHTML = '';
+        return;
+      }
+
+      if (exId === 'run5k') {
+        yLabelEl.innerText = '5-km-Äquivalent in Min (aus beliebiger Distanz & Pace berechnet)';
+        targetBadgeEl.innerText = 'Ziel: 19.9 Min (Pace 3:59/km)';
+        renderPerformanceSVGChart(hist, 19.99, 'm', true);
+
+        const first = hist[0];
+        const last = hist[hist.length - 1];
+        const diff = (last.val - first.val).toFixed(2);
+        summaryEl.innerHTML = `
+          <strong>Lauf-Analyse (${hist.length} Läufe):</strong> Letzter Lauf über <strong>${last.distanceKm} km</strong> mit Pace <strong>${last.paceStr}</strong> (Ø ${last.avgHr} bpm | Max ${last.maxHr} bpm). Dein 5k-Leistungsäquivalent liegt bei <strong>${last.val.toFixed(2)} Min</strong> (${diff <= 0 ? `<span class="text-recoveryGreen font-bold">${diff} Min schneller als zu Beginn</span>` : `+${diff} Min`}).
+        `;
+        tableEl.innerHTML = [...hist].reverse().map((item, idx, arr) => {
+          const prev = arr[idx + 1];
+          const delta = prev ? (item.val - prev.val).toFixed(2) : null;
+          return `
+            <div onclick="switchTab('calendar'); selectCalendarDate('${item.date}');" class="p-2.5 rounded-lg bg-iosCard border border-iosBorder flex justify-between items-center cursor-pointer hover:border-iosAccent">
+              <div>
+                <span class="font-bold text-white">${formatDisplayDate(item.date)}</span> · <span class="text-recoveryGreen font-bold">${item.distanceKm} km</span> (${item.paceStr})
+                <div class="text-[10px] text-gray-400">${item.runType} · Ø ${item.avgHr} bpm | Max <strong class="text-recoveryAmber">${item.maxHr} bpm</strong></div>
+              </div>
+              <div class="text-right">
+                <span class="font-bold text-white">${item.timeMin.toFixed(1)}m <span class="text-[10px] text-iosAccent">(5k-Äq: ${item.val.toFixed(1)}m)</span></span>
+                ${delta !== null ? `<div class="text-[10px] font-bold ${delta <= 0 ? 'text-recoveryGreen' : 'text-recoveryAmber'}">${delta <= 0 ? delta : '+'+delta} Min</div>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+        return;
+      }
+
+      if (exId === 'bikeZ2') {
+        yLabelEl.innerText = 'Dauer in Minuten (Zone-2 Indoor-Bike)';
+        targetBadgeEl.innerText = 'Ziel: 60–75 Min @ Z2';
+        renderPerformanceSVGChart(hist, 60, 'm', false);
+        const last = hist[hist.length - 1];
+        summaryEl.innerHTML = `<strong>Zone-2-Bike (${hist.length} Einheiten):</strong> Zuletzt ${last.durationMin} Min. bei Ø ${last.avgHr} bpm (Max: ${last.maxHr} bpm).`;
+        tableEl.innerHTML = [...hist].reverse().map(item => `
+          <div onclick="switchTab('calendar'); selectCalendarDate('${item.date}');" class="p-2.5 rounded-lg bg-iosCard border border-iosBorder flex justify-between items-center cursor-pointer text-xs">
+            <span><strong>${formatDisplayDate(item.date)}</strong> ${item.isDouble ? '<span class="text-amber-400 text-[10px]">(Double-Day)</span>' : ''}</span>
+            <span><strong>${item.durationMin} Min</strong> · Ø ${item.avgHr} bpm (Max ${item.maxHr} bpm)</span>
+          </div>
+        `).join('');
+        return;
+      }
+
+      // Kraft-Übungen (auf 3–5 Wdh. / 4RM ausgewertet)
+      const catInfo = EXERCISE_CATALOG[exId] || { name: exId, target4RM: null };
+      const target4RM = catInfo.target4RM || null;
+      yLabelEl.innerText = `${catInfo.name} · Berechnetes 4RM (für 3–5 Wdh.) in kg`;
+      targetBadgeEl.innerText = target4RM ? `Ziel: ${target4RM} kg (×3–5)` : 'Kraft-Progression';
+
+      renderPerformanceSVGChart(hist, target4RM, 'kg', false);
+
+      const first = hist[0];
+      const last = hist[hist.length - 1];
+      const gain = (last.fourRm - first.fourRm).toFixed(1);
+      summaryEl.innerHTML = `
+        <strong>Progressions-Bilanz (${catInfo.name}):</strong> Dein 3–5-Wdh.-Arbeitsgewicht (4RM) liegt aktuell bei <strong>${last.fourRm.toFixed(1)} kg</strong> (Top-Set: ${last.kg} kg × ${last.reps}). Steigerung seit Aufzeichnungsbeginn: <span class="text-recoveryGreen font-bold">${gain >= 0 ? '+' + gain : gain} kg</span>.
+      `;
+
+      tableEl.innerHTML = [...hist].reverse().map((item, idx, arr) => {
+        const prev = arr[idx + 1];
+        const diff = prev ? (item.fourRm - prev.fourRm).toFixed(1) : null;
+        return `
+          <div onclick="switchTab('calendar'); selectCalendarDate('${item.date}');" class="p-2.5 rounded-lg bg-iosCard border border-iosBorder flex justify-between items-center cursor-pointer hover:border-iosAccent text-xs">
+            <div>
+              <span class="font-bold text-white">${formatDisplayDate(item.date)}</span> · <span class="text-gray-300">${item.kg} kg × ${item.reps} Wdh.</span>
+              <span class="text-[10px] text-gray-500 block">${item.setsCount} Arbeitssätze geloggt</span>
+            </div>
+            <div class="text-right">
+              <span class="font-bold text-iosAccent">4RM: ${item.fourRm.toFixed(1)} kg</span>
+              ${diff !== null ? `<div class="text-[10px] font-bold ${diff >= 0 ? 'text-recoveryGreen' : 'text-recoveryAmber'}">${diff >= 0 ? '+' + diff : diff} kg</div>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ==================== ERHOLUNGS-HISTORIE TAB ====================
+    function renderHistoryUI() {
+      const chart = document.getElementById('recovery-bar-chart');
+      const listEl = document.getElementById('sleep-history-list');
+      if (!chart || !listEl) return;
+
+      const recent = sleepHistory.slice(-14);
+      chart.innerHTML = recent.map(item => {
+        const col = item.score >= 67 ? 'bg-recoveryGreen' : (item.score >= 34 ? 'bg-recoveryAmber' : 'bg-recoveryRed');
+        const shortD = formatDisplayDate(item.date).slice(0, 5);
+        return `
+          <div class="flex-1 flex flex-col items-center h-full justify-end">
+            <span class="text-[9px] font-bold text-gray-300 mb-1">${item.score}</span>
+            <div class="w-full max-w-[16px] rounded-t-md ${col} transition-all duration-300" style="height: ${Math.max(8, item.score)}%"></div>
+            <span class="text-[9px] text-gray-400 mt-1.5">${shortD}</span>
+          </div>
+        `;
+      }).join('');
+
+      listEl.innerHTML = [...sleepHistory].reverse().map(item => {
+        const minH = item.minHr ?? (item.rhr - 5);
+        return `
+          <div class="p-3 rounded-xl bg-iosDark border border-iosBorder flex justify-between items-center text-xs">
+            <div>
+              <span class="font-bold text-white">${formatDisplayDate(item.date)}</span> · <span class="text-gray-300">${item.sleep}h Schlaf (${item.deep}m Tief)</span>
+              <div class="text-[10px] text-gray-400 mt-0.5">Ruhepuls: <strong class="text-iosAccent">${item.rhr} bpm</strong> · Min. Schlafpuls: <strong class="text-recoveryGreen">${minH} bpm</strong> · HRV: ${item.hrv} ms</div>
+            </div>
+            <span class="px-2.5 py-1 rounded-lg font-black ${item.score >= 67 ? 'bg-recoveryGreen/20 text-recoveryGreen' : (item.score >= 34 ? 'bg-recoveryAmber/20 text-recoveryAmber' : 'bg-recoveryRed/20 text-recoveryRed')}">${item.score}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ==================== STUDIEN & LIVE PUBMED SUCHE ====================
+    function filterCuratedStudies(q) {
+      const term = (q || '').toLowerCase().trim();
+      const filtered = CURATED_STUDIES.filter(s =>
+        !term || s.title.toLowerCase().includes(term) || s.summary.toLowerCase().includes(term) || s.tags.some(t => t.toLowerCase().includes(term))
+      );
+      const container = document.getElementById('curated-studies-list');
+      if (!container) return;
+
+      container.innerHTML = filtered.map(s => `
+        <div class="bg-iosCard rounded-2xl p-4 border border-iosBorder space-y-2">
+          <div class="flex flex-wrap gap-1">
+            ${s.tags.map(t => `<span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-iosAccent/15 text-iosAccent">${t}</span>`).join('')}
+          </div>
+          <h3 class="text-sm font-bold text-white leading-snug">${s.title}</h3>
+          <p class="text-[10px] text-gray-400 font-semibold">${s.authors}</p>
+          <p class="text-xs text-gray-300 leading-relaxed">${s.summary}</p>
+        </div>
+      `).join('');
+    }
+
+    async function searchPubMedLive() {
+      const q = document.getElementById('study-search-input').value.trim() || 'concurrent training hypertrophy cycling';
+      const box = document.getElementById('pubmed-live-results');
+      box.classList.remove('hidden');
+      box.innerHTML = `<p class="text-xs text-iosAccent animate-pulse">Durchsuche PubMed-Datenbank nach „${q}“...</p>`;
+
+      try {
+        const searchRes = await fetch(`https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${encodeURIComponent(q)}&retmode=json&retmax=4`);
+        const searchJson = await searchRes.json();
+        const ids = searchJson.esearchresult?.idlist || [];
+        if (ids.length === 0) {
+          box.innerHTML = `<p class="text-xs text-gray-400">Keine direkten PubMed-Treffer für „${q}“ gefunden.</p>`;
+          return;
+        }
+        const sumRes = await fetch(`https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=${ids.join(',')}&retmode=json`);
+        const sumJson = await sumRes.json();
+
+        box.innerHTML = ids.map(id => {
+          const item = sumJson.result?.[id];
+          if (!item) return '';
+          return `
+            <a href="https://pubmed.ncbi.nlm.nih.gov/${id}/" target="_blank" class="block p-3 rounded-xl bg-iosDark border border-iosBorder hover:border-iosAccent transition">
+              <span class="text-[10px] text-recoveryGreen font-bold">PubMed PMID: ${id} · ${item.pubdate || ''}</span>
+              <h4 class="text-xs font-bold text-white mt-0.5">${item.title}</h4>
+              <p class="text-[10px] text-gray-400 mt-0.5">${item.source || ''}</p>
+            </a>
+          `;
+        }).join('');
+      } catch (e) {
+        box.innerHTML = `<p class="text-xs text-recoveryRed">PubMed-Verbindung aktuell offline – nutze die kuratierten Studien unten.</p>`;
+      }
+    }
+
+    // ==================== BACKUP EXPORT / IMPORT ====================
+    async function exportBackupJSON() {
+      const payload = {
+        version: 3,
+        exportedAt: new Date().toISOString(),
+        sleepHistory,
+        workoutLogs,
+        customExercises: EXERCISE_CATALOG
+      };
+      const fileName = `coach-backup-${formatDateISO(new Date())}.json`;
+
+      // In der nativen App: Datei schreiben und über das iOS-Teilen-Menü sichern (Dateien-App, iCloud Drive, AirDrop …)
+      if (isNativeApp && NativePlugins.Filesystem && NativePlugins.Share) {
+        try {
+          const written = await NativePlugins.Filesystem.writeFile({
+            path: fileName,
+            data: JSON.stringify(payload, null, 2),
+            directory: 'CACHE',
+            encoding: 'utf8'
+          });
+          await NativePlugins.Share.share({ title: 'Coach-Backup', files: [written.uri] });
+          alertUser('Backup-Datei (.json) erstellt!');
+        } catch (e) {
+          if (!String(e && e.message).toLowerCase().includes('cancel')) alertUser('Backup fehlgeschlagen: ' + (e && e.message ? e.message : e));
+        }
+        return;
+      }
+
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      alertUser('Backup-Datei (.json) erstellt!');
+    }
+
+    function importBackupFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (data.sleepHistory) sleepHistory = data.sleepHistory;
+          if (data.workoutLogs) workoutLogs = data.workoutLogs;
+          if (data.customExercises) Object.assign(EXERCISE_CATALOG, data.customExercises);
+          saveStorage();
+          populateTrendSelectDropdown();
+          updateOverviewUI();
+          renderCalendar();
+          selectCalendarDate(selectedDateStr);
+          loadGymTrackerForDate(gtCurrentDate);
+          renderStrengthOverviewAndAnalysis();
+          renderExerciseHistoryComparison();
+          renderHistoryUI();
+          closeSettingsModal();
+          alertUser('Backup erfolgreich wiederhergestellt!');
+        } catch (err) {
+          alertUser('Ungültige JSON-Backup-Datei.');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function resetToSampleData() {
+      localStorage.removeItem(STORAGE_KEY_SLEEP);
+      localStorage.removeItem(STORAGE_KEY_WORKOUTS);
+      loadStorage();
+      updateOverviewUI();
+      renderCalendar();
+      selectCalendarDate(selectedDateStr);
+      loadGymTrackerForDate(gtCurrentDate);
+      renderStrengthOverviewAndAnalysis();
+      renderExerciseHistoryComparison();
+      renderHistoryUI();
+      closeSettingsModal();
+      alertUser('Auf Demo-Daten zurückgesetzt.');
+    }
+  </script>
+</body>
+</html>

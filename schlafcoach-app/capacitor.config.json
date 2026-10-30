@@ -1,0 +1,15 @@
+{
+  "appId": "com.schlafcoach.trainingscoach",
+  "appName": "Trainingscoach",
+  "webDir": "www",
+  "ios": {
+    "backgroundColor": "#0f1015",
+    "contentInset": "never"
+  },
+  "plugins": {
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#0f1015"
+    }
+  }
+}
