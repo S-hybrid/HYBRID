@@ -54,11 +54,11 @@
       user-select: text;
     }
     body.sheet-open { overflow: hidden; }
-    main { overflow-x: hidden; overflow-x: clip; }
+    main { overflow-x: hidden; overflow-x: clip; touch-action: pan-y; }   /* waagerechtes Wischen wechselt den Tab */
     .pt-safe-header { padding-top: calc(env(safe-area-inset-top, 0px) + 0.6rem); }
     .pb-safe { padding-bottom: env(safe-area-inset-bottom, 12px); }
     .custom-scrollbar::-webkit-scrollbar { display: none; }
-    .custom-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .custom-scrollbar { -ms-overflow-style: none; scrollbar-width: none; touch-action: pan-x pan-y; }
 
     /* ---------- Tipp-Feedback ---------- */
     button {
@@ -329,6 +329,15 @@
         <div id="supp-today" class="space-y-2"></div>
       </div>
 
+      <!-- Ernährung heute (Kurzfassung, Details im Tab „Essen“) -->
+      <div class="bg-iosCard rounded-2xl p-4 border border-iosBorder space-y-2.5">
+        <div class="flex justify-between items-center">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-gray-300">Ernährung heute</h3>
+          <button onclick="switchTab('nutrition')" class="text-[11px] text-iosAccent font-semibold">Eintragen &rarr;</button>
+        </div>
+        <div id="nut-mini" class="space-y-2.5"></div>
+      </div>
+
       <!-- Diese Woche (live aus Plan + geloggten Einheiten) -->
       <div class="bg-iosCard rounded-2xl p-4 border border-iosBorder space-y-2.5">
         <div class="flex justify-between items-center">
@@ -463,6 +472,7 @@
           <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-iosAccent"></span> Gym</span>
           <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-recoveryGreen"></span> Lauf</span>
           <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-purple-400"></span> Bike Z2</span>
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-orange-400"></span> Sport</span>
           <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-400"></span> Double-Day</span>
         </div>
       </div>
@@ -564,6 +574,22 @@
 
     <!-- ==================== TAB 4: KRAFT & GRAPHISCHE ANALYSE ==================== -->
     <section id="view-goals" class="tab-view hidden space-y-4">
+      <!-- Wochenrückblick: Training, Schlaf, Ernährung und Gewicht auf einen Blick -->
+      <div class="bg-iosCard rounded-2xl p-4 border border-iosBorder shadow-lg space-y-3">
+        <div class="flex items-center justify-between gap-2">
+          <button id="week-review-prev" onclick="shiftWeekReview(-1)" class="p-1.5 px-2.5 rounded-xl bg-iosDark border border-iosBorder text-gray-300">&larr;</button>
+          <div class="text-center min-w-0">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-iosAccent">Wochenrückblick</span>
+            <h2 id="week-review-label" class="text-base font-bold text-white">Diese Woche</h2>
+            <p id="week-review-range" class="text-[11px] text-gray-400"></p>
+          </div>
+          <button id="week-review-next" onclick="shiftWeekReview(1)" class="p-1.5 px-2.5 rounded-xl bg-iosDark border border-iosBorder text-gray-300">&rarr;</button>
+        </div>
+        <div id="week-review-tiles" class="grid grid-cols-3 gap-2 text-center"></div>
+        <div id="week-review-notes" class="p-3 rounded-xl bg-iosDark border border-iosBorder text-xs text-gray-200 leading-relaxed space-y-1.5"></div>
+        <span id="week-review" class="hidden"></span>
+      </div>
+
       <div class="bg-iosCard rounded-2xl p-4 border border-iosBorder shadow-lg space-y-3">
         <div class="flex justify-between items-center">
           <div>
@@ -688,6 +714,148 @@
         <h3 class="text-xs font-bold uppercase tracking-wider text-gray-300">Gespeicherte Nächte (antippen zum Bearbeiten)</h3>
         <div id="sleep-history-list" class="space-y-2"></div>
         <button type="button" id="sleep-history-more" onclick="toggleSleepHistoryAll()" class="hidden w-full py-2 rounded-xl bg-iosDark border border-iosBorder text-[11px] font-bold text-gray-300"></button>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 6: ERNÄHRUNG & KÖRPER ==================== -->
+    <section id="view-nutrition" class="tab-view hidden space-y-4">
+
+      <!-- Tagesziele -->
+      <div class="bg-iosCard rounded-2xl p-4 border border-iosBorder shadow-lg space-y-3.5">
+        <div class="flex items-center justify-between gap-2">
+          <div class="min-w-0">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-iosAccent">Tagesziele</span>
+            <h2 id="nut-day-label" class="text-base font-bold text-white truncate">Heute</h2>
+          </div>
+          <input type="date" id="nut-date" onchange="setNutritionDate(this.value)" class="shrink-0 bg-iosDark text-xs font-bold text-white border border-iosBorder rounded-xl px-2.5 py-1.5">
+        </div>
+
+        <div class="flex items-center gap-4">
+          <div class="relative w-28 h-28 shrink-0">
+            <svg viewBox="0 0 120 120" class="w-full h-full -rotate-90">
+              <circle cx="60" cy="60" r="52" fill="none" stroke="#2c303f" stroke-width="10"/>
+              <circle id="nut-ring" class="score-ring" cx="60" cy="60" r="52" fill="none" stroke="#3b82f6" stroke-width="10" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7"/>
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+              <span id="nut-kcal-val" class="text-2xl font-black tracking-tight text-white leading-none tabular-nums">0</span>
+              <span id="nut-kcal-sub" class="text-[10px] text-gray-400 font-medium mt-1"></span>
+            </div>
+          </div>
+          <div class="flex-1 min-w-0 space-y-2.5">
+            <p id="nut-kcal-target" class="text-[11px] font-bold text-gray-300"></p>
+            <div id="nut-bars" class="space-y-2.5"></div>
+          </div>
+        </div>
+
+        <p id="nut-hint" class="text-[11px] text-gray-300 leading-relaxed p-2.5 rounded-xl bg-iosDark border border-iosBorder"></p>
+
+        <div class="pt-3 border-t border-iosBorder">
+          <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1">Mein Ziel</label>
+          <select id="nut-goal" onchange="setNutritionGoal(this.value)" class="w-full bg-iosDark border border-iosBorder rounded-xl p-2.5 text-xs font-bold text-white">
+            <option value="cut">📉 Abnehmen (ca. −15 % Kalorien, mehr Protein)</option>
+            <option value="maintain">⚖️ Gewicht halten</option>
+            <option value="bulk">📈 Muskelaufbau (ca. +10 % Kalorien)</option>
+          </select>
+          <p class="text-[10px] text-gray-500 mt-1.5 leading-snug">Die Ziele berechnen sich aus deinem Körpergewicht und passen sich an: an Trainingstagen gibt es mehr Kalorien, Kohlenhydrate und Wasser. Richtwerte, kein medizinischer Rat.</p>
+        </div>
+      </div>
+
+      <!-- Wasser -->
+      <div class="bg-iosCard rounded-2xl p-4 border border-iosBorder space-y-2.5">
+        <div class="flex justify-between items-center">
+          <h3 class="text-sm font-bold text-white">💧 Wasser</h3>
+          <span id="nut-water-val" class="text-xs font-bold text-sky-300 tabular-nums"></span>
+        </div>
+        <div class="w-full bg-iosDark rounded-full h-2.5 overflow-hidden">
+          <div id="nut-water-bar" class="gt-progress h-full bg-sky-400 rounded-full" style="width: 0%"></div>
+        </div>
+        <div class="grid grid-cols-4 gap-2">
+          <button type="button" onclick="addWater(-250)" class="py-2 rounded-xl bg-iosDark border border-iosBorder text-xs font-bold text-gray-400">−250</button>
+          <button type="button" onclick="addWater(250)" class="py-2 rounded-xl bg-iosDark border border-sky-400/50 text-xs font-bold text-sky-300">+250 ml</button>
+          <button type="button" onclick="addWater(500)" class="py-2 rounded-xl bg-iosDark border border-sky-400/50 text-xs font-bold text-sky-300">+500 ml</button>
+          <button type="button" onclick="addWater(750)" class="py-2 rounded-xl bg-iosDark border border-sky-400/50 text-xs font-bold text-sky-300">+750 ml</button>
+        </div>
+      </div>
+
+      <!-- Mahlzeit eintragen -->
+      <div class="bg-iosCard rounded-2xl p-4 border border-iosBorder space-y-3">
+        <h3 class="text-sm font-bold text-white">🍽️ Mahlzeit eintragen</h3>
+        <div>
+          <span class="block text-[10px] font-bold uppercase text-gray-400 mb-1">Favoriten (ein Tipp genügt)</span>
+          <div id="nut-favs" class="flex gap-1.5 overflow-x-auto custom-scrollbar pb-0.5"></div>
+        </div>
+        <div>
+          <span class="block text-[10px] font-bold uppercase text-gray-400 mb-1">Lebensmittel suchen (Menge in Gramm genügt)</span>
+          <input type="text" id="fd-search" oninput="renderFoodResults()" placeholder="z.B. Quark, Reis, Hähnchen..." class="w-full bg-iosDark border border-iosBorder rounded-xl px-3 py-2.5 text-xs text-white">
+          <div id="fd-results" class="flex gap-1.5 overflow-x-auto custom-scrollbar pt-2 pb-0.5"></div>
+          <div id="fd-selected" class="hidden mt-2 p-2.5 rounded-xl bg-iosDark border border-iosAccent/50 space-y-2">
+            <p id="fd-calc" class="text-[11px] text-gray-300 leading-relaxed"></p>
+            <div class="flex gap-2">
+              <input type="text" inputmode="numeric" id="fd-grams" oninput="updateFoodCalc()" class="w-24 bg-iosCard border border-iosBorder rounded-lg p-2 text-sm font-bold text-white text-center">
+              <span class="self-center text-xs text-gray-400">Gramm</span>
+              <button type="button" onclick="addSelectedFood()" class="flex-1 py-2 bg-iosAccent text-white font-bold rounded-lg text-xs">+ Eintragen</button>
+            </div>
+          </div>
+        </div>
+        <span class="block text-[10px] font-bold uppercase text-gray-400 pt-1">Oder Werte selbst eintragen</span>
+        <input type="text" id="nm-name" placeholder="Name, z.B. Hähnchen mit Reis" class="w-full bg-iosDark border border-iosBorder rounded-xl px-3 py-2.5 text-xs text-white">
+        <div class="grid grid-cols-4 gap-2">
+          <div>
+            <label class="block text-[10px] text-gray-400 mb-1">kcal</label>
+            <input type="text" inputmode="numeric" id="nm-kcal" class="w-full bg-iosDark border border-iosBorder rounded-xl p-2.5 text-xs font-bold text-white text-center">
+          </div>
+          <div>
+            <label class="block text-[10px] text-recoveryGreen mb-1">Protein g</label>
+            <input type="text" inputmode="numeric" id="nm-p" class="w-full bg-iosDark border border-recoveryGreen/50 rounded-xl p-2.5 text-xs font-bold text-white text-center">
+          </div>
+          <div>
+            <label class="block text-[10px] text-gray-400 mb-1">KH g</label>
+            <input type="text" inputmode="numeric" id="nm-c" class="w-full bg-iosDark border border-iosBorder rounded-xl p-2.5 text-xs font-bold text-white text-center">
+          </div>
+          <div>
+            <label class="block text-[10px] text-gray-400 mb-1">Fett g</label>
+            <input type="text" inputmode="numeric" id="nm-f" class="w-full bg-iosDark border border-iosBorder rounded-xl p-2.5 text-xs font-bold text-white text-center">
+          </div>
+        </div>
+        <label class="flex items-center justify-between gap-3">
+          <span class="text-[11px] text-gray-300">Als Favorit merken</span>
+          <input type="checkbox" id="nm-fav" class="ios-switch">
+        </label>
+        <button type="button" onclick="addMealFromForm()" class="w-full py-3 bg-iosAccent text-white font-bold rounded-xl text-xs shadow">+ Eintragen</button>
+        <p class="text-[10px] text-gray-500 leading-snug">Fehlen die Kalorien, schätzt die App sie aus Protein, Kohlenhydraten und Fett.</p>
+        <div class="pt-2 border-t border-iosBorder space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="block text-[10px] font-bold uppercase text-gray-400">Eingetragen an diesem Tag</span>
+            <button type="button" onclick="copyMealsFromYesterday()" class="text-[11px] font-bold text-iosAccent">Vortag übernehmen</button>
+          </div>
+          <div id="nut-meals" class="space-y-1.5"></div>
+        </div>
+      </div>
+
+      <!-- 7 Tage -->
+      <div class="bg-iosCard rounded-2xl p-4 border border-iosBorder">
+        <div class="flex justify-between items-center mb-2">
+          <h3 class="text-sm font-bold text-white">Protein – letzte 7 Tage</h3>
+          <span id="nut-week-label" class="text-[10px] text-recoveryGreen font-semibold"></span>
+        </div>
+        <div id="nut-week" class="h-28 flex items-end gap-1.5 pt-3 pb-1 border-b border-iosBorder"></div>
+      </div>
+
+      <!-- Körpergewicht -->
+      <div class="bg-iosCard rounded-2xl p-4 border border-iosBorder space-y-3">
+        <h3 class="text-sm font-bold text-white">⚖️ Körpergewicht</h3>
+        <div class="flex gap-2">
+          <input type="text" inputmode="decimal" id="bw-input" class="flex-1 min-w-0 bg-iosDark border border-iosBorder rounded-xl px-3 py-2.5 text-sm font-bold text-white">
+          <button type="button" onclick="saveBodyWeight()" class="px-4 py-2.5 bg-iosAccent text-white font-bold rounded-xl text-xs whitespace-nowrap">Speichern</button>
+        </div>
+        <p id="bw-stats" class="text-[11px] text-gray-400 leading-relaxed"></p>
+        <div id="bw-chart" class="w-full h-40 bg-iosDark rounded-xl border border-iosBorder p-2 flex items-center justify-center"></div>
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-[11px] text-gray-300">Zielgewicht (kg, optional)</span>
+          <input type="text" inputmode="decimal" id="bw-goal" onchange="setTargetWeight(this.value)" placeholder="–" class="w-20 bg-iosDark border border-iosBorder rounded-xl p-2 text-xs font-bold text-white text-center">
+        </div>
+        <div id="bw-list"></div>
+        <p class="text-[10px] text-gray-500 leading-snug">Dein neuestes Gewicht steuert auch die Kalorien-Ziele, die Mahlzeiten-Empfehlung vor dem Training und die Koffein-Dosis.</p>
       </div>
     </section>
 
@@ -834,7 +1002,7 @@
           </div>
         </div>
 
-        <p class="text-center text-[10px] text-gray-600 pt-1">Trainingscoach · Version 2.0</p>
+        <p class="text-center text-[10px] text-gray-600 pt-1">Trainingscoach · Version 2.4</p>
       </div>
     </div>
   </div>
@@ -1149,6 +1317,10 @@
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
         <span>Schlaf</span>
       </button>
+      <button onclick="navTap('nutrition')" class="nav-item flex-1 flex flex-col items-center gap-1 font-medium" data-tab="nutrition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6c-1.5-1.8-4-2-5.5-.7C4.6 6.9 4.5 10 6 13.5c1.2 2.8 2.8 5 4.3 5 .7 0 1-.4 1.7-.4s1 .4 1.7.4c1.5 0 3.1-2.2 4.3-5 1.5-3.5 1.4-6.6-.5-8.2C16 4 13.500 4.200 12 6zm0 0c0-1.500.800-2.800 2.200-3.500"/></svg>
+        <span>Essen</span>
+      </button>
       <button onclick="navTap('studies')" class="nav-item flex-1 flex flex-col items-center gap-1 font-medium" data-tab="studies">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
         <span>Studien</span>
@@ -1380,9 +1552,10 @@
 
     const STORAGE_KEY_TEMPLATES = 'coach_templates_v1';
     const STORAGE_KEY_SETTINGS = 'coach_settings_v1';
+    const STORAGE_KEY_NUTRITION = 'coach_nutrition_v1';   // Mahlzeiten, Wasser, Körpergewicht
     const STORAGE_KEY_DRAFT = 'coach_gt_draft_v1';   // angefangenes Workout (übersteht App-Neustart)
     const FREE_TEMPLATE_ID = 'gymfree';              // „Freies Training“ ohne Vorlage
-    const TAB_ORDER = ['overview', 'gymtracker', 'calendar', 'goals', 'sleep', 'studies'];
+    const TAB_ORDER = ['overview', 'gymtracker', 'calendar', 'goals', 'sleep', 'nutrition', 'studies'];
     const WD_SHORT = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
     const WD_LONG = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
     const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -1413,7 +1586,7 @@
     // ==================== NATIVE iOS-BRÜCKE (Capacitor) ====================
     const isNativeApp = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
     const NativePlugins = isNativeApp ? window.Capacitor.Plugins : {};
-    const PERSISTED_KEYS = [STORAGE_KEY_SLEEP, STORAGE_KEY_WORKOUTS, STORAGE_KEY_CUSTOM_EX, STORAGE_KEY_STRAVA, STORAGE_KEY_TEMPLATES, STORAGE_KEY_SETTINGS];
+    const PERSISTED_KEYS = [STORAGE_KEY_SLEEP, STORAGE_KEY_WORKOUTS, STORAGE_KEY_CUSTOM_EX, STORAGE_KEY_STRAVA, STORAGE_KEY_TEMPLATES, STORAGE_KEY_SETTINGS, STORAGE_KEY_NUTRITION];
 
     // iOS darf den WebView-Speicher (localStorage) bei Speichermangel leeren.
     // Deshalb werden alle Daten zusätzlich in den nativen App-Einstellungen gespiegelt.
@@ -1598,6 +1771,7 @@
       WORKOUT_TEMPLATES = (tpl && tpl.gym) ? tpl.gym : clone(DEFAULT_WORKOUT_TEMPLATES);
       RUN_TEMPLATES = (tpl && Array.isArray(tpl.run)) ? tpl.run : clone(DEFAULT_RUN_TEMPLATES);
       appSettings = { ...appSettings, ...(read(STORAGE_KEY_SETTINGS) || {}) };
+      nutritionData = { days: {}, weights: [], favorites: [], ...(read(STORAGE_KEY_NUTRITION) || {}) };
       invalidateCaches();
     }
 
@@ -1609,6 +1783,7 @@
         localStorage.setItem(STORAGE_KEY_CUSTOM_EX, JSON.stringify(EXERCISE_CATALOG));
         localStorage.setItem(STORAGE_KEY_TEMPLATES, JSON.stringify({ gym: WORKOUT_TEMPLATES, run: RUN_TEMPLATES }));
         localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(appSettings));
+        localStorage.setItem(STORAGE_KEY_NUTRITION, JSON.stringify(nutritionData));
         mirrorToNativeStorage();
         scheduleAutoBackup();
       } catch (e) {
@@ -1623,6 +1798,7 @@
       calendar:   { title: 'Kalender', sub: () => 'Trainings planen & nachtragen' },
       goals:      { title: 'Analyse', sub: () => 'Kraft, Lauf & Herzfrequenz im Verlauf' },
       sleep:      { title: 'Schlaf & Erholung', sub: () => 'Morgen-Check-in & Erholungsverlauf' },
+      nutrition:  { title: 'Ernährung & Körper', sub: () => 'Tagesziele, Mahlzeiten, Wasser & Gewicht' },
       studies:    { title: 'Studien', sub: () => 'Evidenz zu deinem Hybrid-Plan' }
     };
     const dirtyTabs = new Set(TAB_ORDER);   // Tabs, deren Inhalt beim nächsten Öffnen neu aufgebaut werden muss
@@ -1637,6 +1813,7 @@
         renderBackupReminder();
         renderPrepCard();
         renderSupplementCard();
+        renderNutritionMini();
       } else if (tabId === 'gymtracker') {
         loadGymTrackerForDate(gtCurrentDate || selectedDateStr);
       } else if (tabId === 'calendar') {
@@ -1648,8 +1825,11 @@
         if (current) sel.value = current;
         renderStrengthOverviewAndAnalysis();
         renderExerciseHistoryComparison();
+        renderWeekReview();
       } else if (tabId === 'sleep') {
         renderSleepTab();
+      } else if (tabId === 'nutrition') {
+        renderNutritionTab();
       } else if (tabId === 'studies') {
         filterCuratedStudies($('study-search-input').value);
       }
@@ -2165,6 +2345,144 @@
     // ==================== COACH-PLAN & VORLAGEN-ZUORDNUNG ====================
     const tplWorkingSetCount = (tpl) => tpl.exercises.reduce((n, e) => n + (e.count || 0), 0);
 
+    // ==================== TEAM- & EISSPORT: SPORTARTEN UND BELASTUNG ====================
+    // Die Belastung entsteht nicht einfach aus der Dauer: Bei Hockey sitzt man durch die Blockwechsel einen großen
+    // Teil der Zeit auf der Bank, ist auf dem Feld aber fast maximal intensiv (Intervall-Charakter).
+    //   share  = Anteil der Einheit, in dem man wirklich aktiv ist (Training / Spiel)
+    //            Hockey-Training: halbe Zeit Übungen (voll aktiv) + halbe Zeit Trainingsspiel mit 2 Blöcken (50 % aktiv) ≈ 70 %
+    //   factor = Belastungspunkte pro aktiver Minute (zum Vergleich: lockerer Dauerlauf ≈ 4, Tempolauf ≈ 6–7, Hockey-Shift im Spiel ≈ 10–12)
+    const SPORTS = {
+      sport_unihockey: {
+        name: 'Unihockey', icon: '🏑', pattern: 'Intervall', knee: true,
+        trainShare: 0.70, matchShare: 0.40, trainFactor: 6.0, matchFactor: 10.0,
+        desc: 'Blockwechsel alle 45–90 Sekunden: kurze, sehr intensive Einsätze mit Pausen auf der Bank. Wirkt wie ein hartes Intervalltraining mit vielen Stopps und Richtungswechseln.'
+      },
+      sport_eishockey: {
+        name: 'Eishockey', icon: '🏒', pattern: 'Intervall', knee: false,
+        trainShare: 0.70, matchShare: 0.33, trainFactor: 6.0, matchFactor: 11.5,
+        desc: 'Shifts von 40–60 Sekunden bei fast maximaler Intensität, dazwischen 2–3 Minuten Bank. Klassische hochintensive Intervalle – stark für Oberschenkel, Gesäß und Adduktoren, aber ohne Stoßbelastung.'
+      },
+      sport_eislaufen: {
+        name: 'Eislaufen', icon: '⛸️', pattern: 'Dauerbelastung', knee: false,
+        trainShare: 0.85, matchShare: 0.85, trainFactor: 3.0, matchFactor: 4.5,
+        desc: 'Gleichmäßige, gelenkschonende Ausdauerbelastung ohne Blockwechsel. Fordert vor allem Oberschenkel, Gesäß und Adduktoren.'
+      },
+      sport_basketball: {
+        name: 'Basketball', icon: '🏀', pattern: 'Intervall', knee: true,
+        trainShare: 0.60, matchShare: 0.55, trainFactor: 6.0, matchFactor: 8.5,
+        desc: 'Ständige Sprints, Sprünge und Richtungswechsel mit kurzen Unterbrechungen und Auswechslungen. Intervallartig, mit hoher Sprung- und Kniebelastung.'
+      },
+      sport_fussball: {
+        name: 'Fußball', icon: '⚽', pattern: 'Dauer + Sprints', knee: true,
+        trainShare: 0.65, matchShare: 0.90, trainFactor: 5.5, matchFactor: 6.0,
+        desc: 'Fast durchgehende Laufbelastung (im Spiel 9–11 km) mit vielen Sprints – eine Mischung aus Dauerlauf und Intervallen, kaum echte Pausen.'
+      }
+    };
+    const SPORT_MODES = {
+      easy:  'Lockeres Training / Technik',
+      train: 'Normales Training',
+      match: 'Spiel / Wettkampf / sehr hart'
+    };
+    const isSportType = (type) => String(type).startsWith('sport_');
+
+    // Belastung einer Einheit: aktive Minuten × Intensität der Sportart
+    function computeSportLoad(type, durationMin, mode, avgHr) {
+      const sport = SPORTS[type];
+      const dur = Math.max(0, durationMin || 0);
+      if (!sport || !dur) return { load: 0, activeMin: 0, level: 'leicht', runEq: 0 };
+      const match = mode === 'match';
+      const share = match ? sport.matchShare : sport.trainShare;
+      let factor = match ? sport.matchFactor : sport.trainFactor * (mode === 'easy' ? 0.7 : 1);
+      // Optionaler Durchschnittspuls verschiebt die Einschätzung leicht (höchstens ±15 %)
+      if (avgHr > 0) factor *= clamp(avgHr / 150, 0.85, 1.15);
+      const activeMin = Math.round(dur * share);
+      const load = Math.round(activeMin * factor);
+      return {
+        load,
+        activeMin,
+        level: load >= 340 ? 'hoch' : (load >= 190 ? 'mittel' : 'leicht'),
+        runEq: Math.round(load / 6.5)   // entspricht ungefähr so vielen Minuten Tempolauf
+      };
+    }
+
+    function sportLoadSummary(type, res, durationMin) {
+      const sport = SPORTS[type];
+      const tone = res.level === 'hoch' ? 'text-recoveryRed' : (res.level === 'mittel' ? 'text-recoveryAmber' : 'text-recoveryGreen');
+      const recovery = res.level === 'hoch'
+        ? 'Hohe Belastung: Plane am Folgetag kein schweres Bein-Training und keinen harten Lauf.'
+        : (res.level === 'mittel' ? 'Mittlere Belastung: Am Folgetag ist normales Training möglich, Beine eventuell etwas vorbelastet.' : 'Leichte Belastung: kaum Einfluss auf das nächste Training.');
+      return `
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-[10px] font-bold uppercase text-gray-400">Körperliche Belastung</span>
+          <span class="text-sm font-black ${tone} tabular-nums">${res.load} Punkte · ${res.level}</span>
+        </div>
+        <p class="text-[11px] text-gray-300 leading-relaxed mt-1">Von ${durationMin} Min. warst du etwa <strong>${res.activeMin} Min. wirklich aktiv</strong> (${sport.pattern}). Das entspricht ungefähr <strong>${res.runEq} Min. Tempolauf</strong>.</p>
+        <p class="text-[11px] text-gray-400 leading-relaxed mt-1">${sport.desc}</p>
+        <p class="text-[11px] ${tone} font-semibold leading-relaxed mt-1">${recovery}</p>`;
+    }
+
+    // Eingabefelder im Kalender für eine Sport-Einheit
+    function renderSportEditorFields(container, existingLog, type) {
+      const sport = SPORTS[type];
+      const same = existingLog && existingLog.type === type;
+      const dur = same && existingLog.durationMin ? existingLog.durationMin : 90;
+      const mode = same && existingLog.mode ? existingLog.mode : 'train';
+      const hr = same && existingLog.avgHr ? existingLog.avgHr : '';
+      container.innerHTML = `
+        <div class="bg-iosDark p-3.5 rounded-xl border border-iosBorder space-y-3">
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[10px] text-gray-400 block mb-1">Gesamtdauer (Min)</label>
+              <input type="text" inputmode="numeric" id="sp-dur" value="${dur}" oninput="updateSportLoadPreview()" class="w-full bg-iosCard border border-iosBorder rounded-lg p-2 text-xs font-bold text-orange-400">
+            </div>
+            <div>
+              <label class="text-[10px] text-gray-400 block mb-1">Ø Puls (optional)</label>
+              <input type="text" inputmode="numeric" id="sp-hr" value="${hr}" placeholder="–" oninput="updateSportLoadPreview()" class="w-full bg-iosCard border border-iosBorder rounded-lg p-2 text-xs font-bold text-white">
+            </div>
+          </div>
+          <div>
+            <label class="text-[10px] text-gray-400 block mb-1">Art der Einheit</label>
+            <select id="sp-mode" onchange="updateSportLoadPreview()" class="w-full bg-iosCard border border-iosBorder rounded-lg p-2 text-xs font-bold text-white">
+              ${Object.keys(SPORT_MODES).map(k => `<option value="${k}" ${k === mode ? 'selected' : ''}>${SPORT_MODES[k]}</option>`).join('')}
+            </select>
+          </div>
+          <div id="sp-load-box" class="p-2.5 rounded-lg bg-iosCard border border-iosBorder"></div>
+        </div>
+        <p class="text-[11px] text-gray-400">${sport.icon} Trage die ganze Zeit ein (inklusive Bank und Pausen) – die App rechnet die reine Spielzeit selbst heraus.</p>
+      `;
+      updateSportLoadPreview();
+    }
+
+    function readSportForm() {
+      return {
+        durationMin: Math.round(parseNum($('sp-dur').value)),
+        mode: $('sp-mode').value,
+        avgHr: Math.round(parseNum($('sp-hr').value)) || null
+      };
+    }
+
+    function updateSportLoadPreview() {
+      const box = $('sp-load-box');
+      const type = $('workout-type-select').value;
+      if (!box || !SPORTS[type]) return;
+      const f = readSportForm();
+      if (!f.durationMin) {
+        box.innerHTML = '<span class="text-[11px] text-gray-400">Dauer eintragen – die Belastung wird sofort berechnet.</span>';
+        return;
+      }
+      box.innerHTML = sportLoadSummary(type, computeSportLoad(type, f.durationMin, f.mode, f.avgHr), f.durationMin);
+    }
+
+    // Hinweis für den Tag nach einer Sport-Einheit
+    function sportYesterdayNote(log) {
+      const sport = SPORTS[log.type] || { name: 'Sport' };
+      const res = computeSportLoad(log.type, log.durationMin, log.mode, log.avgHr);
+      if (res.level === 'hoch') {
+        return { tone: 'warn', text: `Gestern ${sport.name} (${log.durationMin} Min., Belastung ${res.load} – hoch, ${sport.pattern}): Deine Beine und dein Nervensystem sind vorbelastet. Schwere Bein-Sätze reduzieren, Läufe nur locker. Die Mahlzeit enthält deshalb mehr Kohlenhydrate.` };
+      }
+      return { tone: 'info', text: `Gestern ${sport.name} (${log.durationMin} Min., Belastung ${res.load} – ${res.level}): Die Mahlzeit enthält etwas mehr Kohlenhydrate, um die Speicher aufzufüllen.` };
+    }
+
     // ==================== WOCHENPLAN (welches Training an welchem Tag, zu welcher Uhrzeit) ====================
     // Schlüssel = Wochentag (0 = So … 6 = Sa). Im Wochenplan-Fenster frei änderbar.
     const DEFAULT_WEEK_PLAN = {
@@ -2177,7 +2495,7 @@
       0: { type: 'rest', time: '' }
     };
     const PLAN_DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
-    const TRAINING_MINUTES = { gym: 75, run: 45, bike: 60 };   // geschätzte Dauer für den Zeitplan
+    const TRAINING_MINUTES = { gym: 75, run: 45, bike: 60, sport: 90 };   // geschätzte Dauer für den Zeitplan
 
     const timeToMin = (t) => {
       const m = /^(\d{1,2}):(\d{2})$/.exec(t || '');
@@ -2187,7 +2505,7 @@
       min = ((Math.round(min) % 1440) + 1440) % 1440;
       return `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
     };
-    const planKind = (type) => String(type).startsWith('gym') ? 'gym' : type;
+    const planKind = (type) => String(type).startsWith('gym') ? 'gym' : (isSportType(type) ? 'sport' : type);
 
     function getWeekPlan() {
       const plan = {};
@@ -2246,12 +2564,17 @@
           items: planItemsForTemplate(entry.type)
         };
       } else if (kind === 'run') {
-        const tired = night && night.score < 38;
+        const yLog = workoutLogs[getPreviousDayISO(isoDate)];
+        const heavySport = !!yLog && isSportType(yLog.type) && computeSportLoad(yLog.type, yLog.durationMin, yLog.mode, yLog.avgHr).level === 'hoch';
+        const lowScore = !!night && night.score < 38;
+        const tired = lowScore || heavySport;
         plan = tired ? {
           suggestedType: 'bike', deviated: true,
           title: `🔄 Plan-Anpassung (${WD_SHORT[wd]}): Zone-2-Bike statt Lauf`,
-          sub: 'Niedriger Erholungs-Score erkannt',
-          reason: `Dein Erholungs-Score (${night.score}) ist niedrig – der Coach tauscht den Lauf gegen eine lockere Bike-Einheit, die Knie und Nervensystem schont.`,
+          sub: lowScore ? 'Niedriger Erholungs-Score erkannt' : 'Hohe Belastung vom Vortag erkannt',
+          reason: lowScore
+            ? `Dein Erholungs-Score (${night.score}) ist niedrig – der Coach tauscht den Lauf gegen eine lockere Bike-Einheit, die Knie und Nervensystem schont.`
+            : `Gestern ${SPORTS[yLog.type].name} mit hoher Intervall-Belastung – der Coach tauscht den Lauf gegen eine lockere Bike-Einheit, damit sich die Beine erholen.`,
           items: ['40–50 Min. Indoor-Bike bei 130–142 bpm', 'Den Lauf an einem besser erholten Tag nachholen']
         } : {
           suggestedType: 'run', deviated: false,
@@ -2259,6 +2582,15 @@
           sub: 'Laut deinem Wochenplan',
           reason: 'Heute steht ein Lauf im Plan. Wähle im Kalender eine deiner Lauf-Vorlagen und trage danach Zeit und Puls ein.',
           items: ['10 Min. locker einlaufen', 'Hauptteil nach deiner Lauf-Vorlage', '5 Min. auslaufen']
+        };
+      } else if (kind === 'sport') {
+        const sport = SPORTS[entry.type];
+        plan = {
+          suggestedType: entry.type, deviated: false,
+          title: `${sport.icon} ${WD_LONG[wd]}: ${sport.name}`,
+          sub: `Laut deinem Wochenplan · ${sport.pattern}`,
+          reason: sport.desc,
+          items: ['10–15 Min. aufwärmen mit Mobilisation und ersten Antritten', 'Zwischen den Einsätzen trinken – auch wenn du keinen Durst hast', 'Danach im Kalender Dauer und Art der Einheit eintragen: die App berechnet die Belastung']
         };
       } else {
         plan = {
@@ -2299,6 +2631,7 @@
           + opt(FREE_TEMPLATE_ID, '✨ Freies Gym-Training')
           + opt('run', '🏃‍♂️ Laufeinheit')
           + opt('bike', '🚴‍♂️ Indoor-Bike')
+          + Object.keys(SPORTS).map(id => opt(id, `${SPORTS[id].icon} ${SPORTS[id].name}`)).join('')
           + opt('rest', '🛑 Ruhetag');
       };
       $('plan-days').innerHTML = PLAN_DAY_ORDER.map(wd => {
@@ -2697,7 +3030,12 @@
         ? 'Nach der kurzen Nacht 10 statt 5 Minuten: locker anschwitzen und einen Aufwärmsatz mehr.'
         : '5 Minuten locker anschwitzen, dann die Aufwärmsätze der ersten Übung.');
 
-      if (hardYesterday) {
+      if (kind === 'sport') {
+        notes.push({ tone: 'info', text: `${SPORTS[plan.suggestedType].name} ist ${SPORTS[plan.suggestedType].pattern}-Belastung: Volle Kohlenhydrat-Speicher zählen hier mehr als beim Krafttraining. Nimm eine Flasche mit und trinke in jeder Pause ein paar Schlucke.` });
+      }
+      if (yKind === 'sport') {
+        notes.push(sportYesterdayNote(yesterday));
+      } else if (hardYesterday) {
         notes.push({ tone: 'info', text: yKind === 'gym' && kind === 'gym'
           ? 'Gestern auch Krafttraining: Die Mahlzeit enthält deshalb mehr Kohlenhydrate. Achte bei überlappenden Muskelgruppen auf saubere Technik.'
           : 'Gestern trainiert: Die Mahlzeit enthält deshalb mehr Kohlenhydrate, um die Speicher wieder aufzufüllen.' });
@@ -2847,8 +3185,8 @@
       monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
 
       const shortLabel = { run: 'Lauf', bike: 'Bike', rest: 'Rest' };
-      const colors = { gym: 'text-iosAccent', run: 'text-recoveryGreen', bike: 'text-purple-400', rest: 'text-gray-500' };
-      let done = 0, planned = 0, volume = 0, runKm = 0, scoreSum = 0, scoreN = 0;
+      const colors = { gym: 'text-iosAccent', run: 'text-recoveryGreen', bike: 'text-purple-400', sport: 'text-orange-400', rest: 'text-gray-500' };
+      let done = 0, planned = 0, volume = 0, runKm = 0, scoreSum = 0, scoreN = 0, sportLoad = 0;
       let html = '';
 
       for (let i = 0; i < 7; i++) {
@@ -2858,8 +3196,8 @@
         const log = workoutLogs[iso];
         const dayPlan = getRecommendedPlanForDate(iso);
         const type = log ? log.type : dayPlan.suggestedType;
-        const kind = String(type).startsWith('gym') ? 'gym' : type;
-        const label = kind === 'gym' ? 'Gym' : (shortLabel[kind] || '–');
+        const kind = planKind(type);
+        const label = kind === 'gym' ? 'Gym' : (kind === 'sport' ? (SPORTS[type]?.icon || '🏅') : (shortLabel[kind] || '–'));
         const isToday = iso === todayISO;
 
         if (kind !== 'rest') planned++;
@@ -2867,6 +3205,7 @@
         if (log) {
           volume += workoutVolume(log);
           if (log.type === 'run') runKm += log.distanceKm || 0;
+          if (isSportType(log.type)) sportLoad += computeSportLoad(log.type, log.durationMin, log.mode, log.avgHr).load;
         }
         const night = sleepHistory.find(s => s.date === iso);
         if (night) { scoreSum += night.score; scoreN++; }
@@ -2885,6 +3224,7 @@
       const stats = [];
       if (volume > 0) stats.push(`${Math.round(volume).toLocaleString('de-DE')} kg Volumen`);
       if (runKm > 0) stats.push(`${fmtNum(runKm)} km gelaufen`);
+      if (sportLoad > 0) stats.push(`Sport-Belastung ${sportLoad}`);
       if (scoreN > 0) stats.push(`Ø Erholung ${Math.round(scoreSum / scoreN)}`);
       $('week-stats').innerText = stats.length ? stats.join(' · ') : 'Noch keine Einheit in dieser Woche geloggt.';
     }
@@ -2907,6 +3247,7 @@
       if (log.type === 'run') return icon('🏃‍♂️') + (log.runType ? `Lauf · ${log.runType}` : 'Laufeinheit');
       if (log.type === 'bike') return icon('🚴‍♂️') + 'Indoor-Bike Z2';
       if (log.type === 'rest') return icon('🛑') + 'Ruhetag';
+      if (isSportType(log.type)) return icon(SPORTS[log.type]?.icon || '🏅') + (SPORTS[log.type]?.name || 'Sport');
       return icon('🏋️‍♂️') + (WORKOUT_TEMPLATES[log.type]?.name || log.templateName || 'Freies Training');
     }
 
@@ -4355,6 +4696,7 @@
           if (log.type.startsWith('gym')) dotCol = 'bg-iosAccent';
           else if (log.type === 'run') dotCol = 'bg-recoveryGreen';
           else if (log.type === 'bike') dotCol = 'bg-purple-400';
+          else if (isSportType(log.type)) dotCol = 'bg-orange-400';
 
           const hasDouble = log.secondUnit && log.secondUnit.type && log.secondUnit.type !== 'none';
           dotHtml = `<div class="flex gap-0.5 justify-center mt-0.5">
@@ -4594,6 +4936,8 @@
           </div>
           <p class="text-[11px] text-gray-400">🚴‍♂️ 0 % Stoßbelastung für die Knie – maximales Schlagvolumen für dein Ruhepuls-Ziel (&lt; 50 bpm).</p>
         `;
+      } else if (isSportType(type)) {
+        renderSportEditorFields(container, existingLog, type);
       } else {
         container.innerHTML = `
           <div class="p-3.5 rounded-xl bg-iosDark border border-iosBorder text-xs text-gray-300">
@@ -4672,6 +5016,15 @@
         entry.avgHr = parseInt(document.getElementById('run-hr-input').value) || 175;
         entry.maxHr = parseInt(document.getElementById('run-maxhr-input').value) || 189;
         entry.runType = document.getElementById('run-type-input')?.value || 'Tempolauf';
+      } else if (isSportType(type)) {
+        const f = readSportForm();
+        if (!f.durationMin) { alertUser('Bitte die Dauer der Einheit eintragen'); return; }
+        const res = computeSportLoad(type, f.durationMin, f.mode, f.avgHr);
+        entry.durationMin = f.durationMin;
+        entry.mode = f.mode;
+        if (f.avgHr) entry.avgHr = f.avgHr;
+        entry.load = res.load;
+        entry.activeMin = res.activeMin;
       } else if (type === 'bike') {
         entry.durationMin = parseInt(document.getElementById('bike-dur-input').value) || 60;
         entry.avgHr = parseInt(document.getElementById('bike-hr-input').value) || 135;
@@ -4742,6 +5095,10 @@
         const maxHrText = currentLog.maxHr ? ` (Max: ${currentLog.maxHr} bpm)` : '';
         content.innerHTML = `<div>• <strong>Indoor-Bike Zone 2:</strong> ${currentLog.durationMin} Min @ Ø ${currentLog.avgHr} bpm${maxHrText} gespeichert (Knie-schonendes Herzkreislauf-Volumen).</div>`;
         box.classList.remove('hidden');
+      } else if (isSportType(currentLog.type) && SPORTS[currentLog.type]) {
+        const res = computeSportLoad(currentLog.type, currentLog.durationMin, currentLog.mode, currentLog.avgHr);
+        content.innerHTML = `<div class="font-bold text-white">${SPORTS[currentLog.type].icon} ${SPORTS[currentLog.type].name} · ${SPORT_MODES[currentLog.mode] || ''}</div>` + sportLoadSummary(currentLog.type, res, currentLog.durationMin);
+        box.classList.remove('hidden');
       } else {
         box.classList.add('hidden');
       }
@@ -4784,6 +5141,9 @@
         <optgroup label="Gym-Vorlagen">
           ${tplOpts}${extra}
           <option value="${FREE_TEMPLATE_ID}">✨ Freies Gym-Training</option>
+        </optgroup>
+        <optgroup label="Team- & Eissport">
+          ${Object.keys(SPORTS).map(id => `<option value="${id}">${SPORTS[id].icon} ${SPORTS[id].name}</option>`).join('')}
         </optgroup>
         <optgroup label="Ausdauer & Pause">
           <option value="run">🏃‍♂️ Laufeinheit (Distanz, Pace & Puls)</option>
@@ -5385,7 +5745,8 @@
         workoutLogs,
         customExercises: EXERCISE_CATALOG,
         templates: { gym: WORKOUT_TEMPLATES, run: RUN_TEMPLATES },
-        settings: appSettings
+        settings: appSettings,
+        nutrition: nutritionData
       };
     }
 
@@ -5434,6 +5795,7 @@
       if (data.templates && data.templates.gym) WORKOUT_TEMPLATES = data.templates.gym;
       if (data.templates && Array.isArray(data.templates.run)) RUN_TEMPLATES = data.templates.run;
       if (data.settings) appSettings = { ...appSettings, ...data.settings };
+      if (data.nutrition) nutritionData = { days: {}, weights: [], favorites: [], ...data.nutrition };
       sleepHistory.sort((a, b) => a.date.localeCompare(b.date));
 
       clearDraft();
@@ -5540,9 +5902,10 @@
     }
 
     function clearAllData() {
-      if (!confirm('Wirklich ALLE Check-ins und Trainings löschen?\n\nDeine Vorlagen und eigenen Übungen bleiben erhalten. Tipp: vorher ein Backup sichern.')) return;
+      if (!confirm('Wirklich ALLE Check-ins, Trainings, Mahlzeiten und Gewichte löschen?\n\nDeine Vorlagen, Favoriten und eigenen Übungen bleiben erhalten. Tipp: vorher ein Backup sichern.')) return;
       sleepHistory = [];
       workoutLogs = {};
+      nutritionData = { days: {}, weights: [], favorites: nutritionData.favorites };
       clearDraft();
       cancelRestTimer();
       saveStorage();
@@ -5600,6 +5963,614 @@
       renderSettingsUI();
     }
 
+    // ==================== WISCHEN ZWISCHEN DEN TABS ====================
+    // Nach links/rechts wischen wechselt zum Nachbar-Tab. Die Ansicht folgt dabei dem Finger.
+    function initSwipeNavigation() {
+      const main = document.querySelector('main');
+      let startX = 0, startY = 0, startTime = 0;
+      let lock = null;   // null = noch unentschieden, 'x' = waagerechtes Wischen, 'none' = ignorieren
+      let view = null;
+
+      main.addEventListener('touchstart', (e) => {
+        lock = null;
+        view = null;
+        // Nicht wischen, wenn ein Fenster offen ist oder der Finger in einer seitlich scrollbaren Leiste startet
+        if (e.touches.length !== 1 || openSheetCount > 0 || e.target.closest('.custom-scrollbar, #svg-chart-container, #bw-chart')) {
+          lock = 'none';
+          return;
+        }
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        startTime = Date.now();
+      }, { passive: true });
+
+      main.addEventListener('touchmove', (e) => {
+        if (lock === 'none') return;
+        const dx = e.touches[0].clientX - startX;
+        const dy = e.touches[0].clientY - startY;
+        if (lock === null) {
+          if (Math.abs(dx) < 12 && Math.abs(dy) < 12) return;
+          lock = Math.abs(dx) > Math.abs(dy) * 1.4 ? 'x' : 'none';
+          if (lock !== 'x') return;
+          view = $(`view-${currentTab}`);
+          view.style.transition = 'none';
+          if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        }
+        const idx = TAB_ORDER.indexOf(currentTab);
+        const atEdge = (dx > 0 && idx === 0) || (dx < 0 && idx === TAB_ORDER.length - 1);
+        view.style.transform = `translate3d(${dx * (atEdge ? 0.12 : 0.45)}px, 0, 0)`;
+        view.style.opacity = String(1 - Math.min(0.5, Math.abs(dx) / 500));
+      }, { passive: true });
+
+      const end = (e) => {
+        if (lock !== 'x' || !view) { lock = null; return; }
+        const v = view;
+        const dx = e.changedTouches[0].clientX - startX;
+        const quick = Date.now() - startTime < 300;
+        lock = null;
+        view = null;
+        const next = TAB_ORDER[TAB_ORDER.indexOf(currentTab) + (dx < 0 ? 1 : -1)];
+        if (next && (Math.abs(dx) > 70 || (quick && Math.abs(dx) > 35))) {
+          v.style.transition = '';
+          v.style.transform = '';
+          v.style.opacity = '';
+          haptic('light');
+          switchTab(next, { restoreScroll: true });
+        } else {
+          // zu kurz gewischt: weich zurückfedern
+          v.style.transition = 'transform .3s var(--ease-out), opacity .3s ease';
+          v.style.transform = '';
+          v.style.opacity = '';
+          setTimeout(() => { v.style.transition = ''; }, 320);
+        }
+      };
+      main.addEventListener('touchend', end);
+      main.addEventListener('touchcancel', end);
+    }
+
+    // ==================== ERNÄHRUNG & KÖRPER ====================
+    // nutritionData: { days: { 'JJJJ-MM-TT': { meals: [{ id, name, kcal, p, c, f }], waterMl } }, weights: [{ date, kg }], favorites: [{ id, name, kcal, p, c, f }] }
+    let nutritionData = { days: {}, weights: [], favorites: [] };
+    let nutritionDate = '';   // Tag, der im Ernährungs-Tab gerade angezeigt wird
+
+    // Richtwerte: Kalorien-Faktor und Protein pro kg Körpergewicht je nach Ziel
+    const NUTRITION_GOALS = {
+      cut:      { label: 'Abnehmen (ca. −15 %)', kcal: 0.85, protein: 2.2 },
+      maintain: { label: 'Gewicht halten', kcal: 1.0, protein: 2.0 },
+      bulk:     { label: 'Muskelaufbau (ca. +10 %)', kcal: 1.1, protein: 2.0 }
+    };
+
+    // Tagesziele: an Trainingstagen mehr Kalorien, Kohlenhydrate und Wasser als an Ruhetagen
+    function getNutritionTargets(isoDate) {
+      const w = getProfile().weightKg;
+      const goal = NUTRITION_GOALS[appSettings.nutritionGoal] || NUTRITION_GOALS.maintain;
+      const log = workoutLogs[isoDate];
+      const training = planKind(log ? log.type : getRecommendedPlanForDate(isoDate).suggestedType) !== 'rest';
+      const kcal = Math.round(w * (training ? 35 : 31) * goal.kcal / 10) * 10;
+      const protein = Math.round(w * goal.protein);
+      const fat = Math.round(w * 0.9);
+      const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4));
+      const water = Math.round((w * 35 + (training ? 500 : 0)) / 50) * 50;
+      return { kcal, protein, carbs, fat, water, training };
+    }
+
+    function getNutritionDay(isoDate, create) {
+      let day = nutritionData.days[isoDate];
+      if (!day && create) day = nutritionData.days[isoDate] = { meals: [], waterMl: 0 };
+      return day || { meals: [], waterMl: 0 };
+    }
+
+    function nutritionTotals(isoDate) {
+      const day = getNutritionDay(isoDate);
+      const sum = { kcal: 0, p: 0, c: 0, f: 0, water: day.waterMl || 0 };
+      day.meals.forEach(m => { sum.kcal += m.kcal || 0; sum.p += m.p || 0; sum.c += m.c || 0; sum.f += m.f || 0; });
+      return sum;
+    }
+
+    function afterNutritionChanged() {
+      saveStorage();
+      dirtyTabs.add('overview');
+      if (currentTab === 'nutrition') renderNutritionTab();
+      else if (currentTab === 'overview') renderNutritionMini();
+    }
+
+    function setNutritionDate(isoDate) {
+      nutritionDate = isoDate || formatDateISO(new Date());
+      renderNutritionTab();
+    }
+
+    function setNutritionGoal(goal) {
+      appSettings.nutritionGoal = goal;
+      haptic('light');
+      afterNutritionChanged();
+    }
+
+    // ---------- Mahlzeiten ----------
+    function addMealFromForm() {
+      const meal = {
+        id: Date.now().toString(36),
+        name: $('nm-name').value.trim() || 'Mahlzeit',
+        kcal: Math.round(parseNum($('nm-kcal').value)),
+        p: Math.round(parseNum($('nm-p').value)),
+        c: Math.round(parseNum($('nm-c').value)),
+        f: Math.round(parseNum($('nm-f').value))
+      };
+      if (!meal.kcal && !meal.p && !meal.c && !meal.f) {
+        alertUser('Trage mindestens Kalorien oder Protein ein');
+        return;
+      }
+      // Kalorien fehlen? Dann aus den Makros schätzen (4/4/9 kcal pro Gramm)
+      if (!meal.kcal) meal.kcal = meal.p * 4 + meal.c * 4 + meal.f * 9;
+      getNutritionDay(nutritionDate, true).meals.push(meal);
+      if ($('nm-fav').checked && !nutritionData.favorites.some(x => x.name === meal.name)) {
+        nutritionData.favorites.push({ ...meal, id: 'fav_' + meal.id });
+      }
+      ['nm-name', 'nm-kcal', 'nm-p', 'nm-c', 'nm-f'].forEach(id => { $(id).value = ''; });
+      $('nm-fav').checked = false;
+      haptic('medium');
+      afterNutritionChanged();
+      alertUser(`${meal.name} eingetragen`);
+    }
+
+    function addFavoriteMeal(favId) {
+      const fav = nutritionData.favorites.find(x => x.id === favId);
+      if (!fav) return;
+      getNutritionDay(nutritionDate, true).meals.push({ ...fav, id: Date.now().toString(36) });
+      haptic('medium');
+      afterNutritionChanged();
+      alertUser(`${fav.name} eingetragen`);
+    }
+
+    function deleteFavoriteMeal(favId) {
+      const fav = nutritionData.favorites.find(x => x.id === favId);
+      if (!fav || !confirm(`Favorit „${fav.name}“ löschen?`)) return;
+      nutritionData.favorites = nutritionData.favorites.filter(x => x.id !== favId);
+      afterNutritionChanged();
+    }
+
+    function deleteMeal(mealId) {
+      const day = getNutritionDay(nutritionDate, true);
+      day.meals = day.meals.filter(m => m.id !== mealId);
+      haptic('light');
+      afterNutritionChanged();
+    }
+
+    function addWater(ml) {
+      const day = getNutritionDay(nutritionDate, true);
+      day.waterMl = Math.max(0, (day.waterMl || 0) + ml);
+      haptic('light');
+      afterNutritionChanged();
+    }
+
+    // ---------- Körpergewicht ----------
+    function saveBodyWeight() {
+      const kg = parseNum($('bw-input').value);
+      if (kg < 30 || kg > 250) {
+        alertUser('Bitte ein Gewicht zwischen 30 und 250 kg eintragen');
+        return;
+      }
+      nutritionData.weights = nutritionData.weights.filter(x => x.date !== nutritionDate);
+      nutritionData.weights.push({ date: nutritionDate, kg: Math.round(kg * 10) / 10 });
+      nutritionData.weights.sort((a, b) => a.date.localeCompare(b.date));
+      // Das neueste Gewicht steuert auch Dosierungen und Mengen-Empfehlungen
+      const latest = nutritionData.weights[nutritionData.weights.length - 1];
+      appSettings.profile = { ...getProfile(), weightKg: latest.kg };
+      $('bw-input').value = '';
+      haptic('success');
+      afterNutritionChanged();
+      alertUser(`Gewicht ${fmtNum(kg)} kg gespeichert`);
+    }
+
+    function deleteBodyWeight(date) {
+      nutritionData.weights = nutritionData.weights.filter(x => x.date !== date);
+      afterNutritionChanged();
+    }
+
+    function setTargetWeight(value) {
+      const kg = parseNum(value);
+      appSettings.targetWeight = (kg >= 30 && kg <= 250) ? kg : null;
+      afterNutritionChanged();
+    }
+
+    // Schnitt der Gewichte in einem Zeitfenster (glättet Tagesschwankungen)
+    function weightAverage(fromISO, toISO) {
+      const vals = nutritionData.weights.filter(x => x.date >= fromISO && x.date <= toISO).map(x => x.kg);
+      return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+    }
+
+    function shiftISO(isoDate, days) {
+      const d = new Date(isoDate + 'T12:00:00');
+      d.setDate(d.getDate() + days);
+      return formatDateISO(d);
+    }
+
+    function renderWeightChart() {
+      const box = $('bw-chart');
+      const list = nutritionData.weights.slice(-14);
+      if (list.length < 2) {
+        box.innerHTML = '<p class="text-xs text-gray-500">Ab zwei Einträgen siehst du hier deinen Verlauf.</p>';
+        return;
+      }
+      const w = 340, h = 150, padL = 30, padR = 16, padT = 20, padB = 24;
+      const vals = list.map(x => x.kg);
+      const target = appSettings.targetWeight;
+      if (target) vals.push(target);
+      const minV = Math.min(...vals) - 0.8;
+      const maxV = Math.max(...vals) + 0.8;
+      const getX = (i) => padL + (i / (list.length - 1)) * (w - padL - padR);
+      const getY = (v) => (h - padB) - ((v - minV) / (maxV - minV)) * (h - padT - padB);
+      const pts = list.map((x, i) => `${getX(i).toFixed(1)},${getY(x.kg).toFixed(1)}`).join(' ');
+      box.innerHTML = `
+        <svg viewBox="0 0 ${w} ${h}" class="w-full h-full">
+          ${target ? `<line x1="${padL}" y1="${getY(target)}" x2="${w - padR}" y2="${getY(target)}" stroke="#34c759" stroke-width="1.2" stroke-dasharray="4 3" />
+            <text x="${w - padR}" y="${getY(target) - 4}" text-anchor="end" fill="#34c759" font-size="8.5" font-weight="bold">Ziel ${fmtNum(target)} kg</text>` : ''}
+          <polyline class="chart-draw" pathLength="1" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="${pts}" />
+          ${list.map((x, i) => `
+            <circle class="chart-dot" cx="${getX(i).toFixed(1)}" cy="${getY(x.kg).toFixed(1)}" r="3.5" fill="#3b82f6" stroke="#0f1015" stroke-width="1.5" />
+            ${(i === 0 || i === list.length - 1) ? `<text x="${getX(i).toFixed(1)}" y="${(getY(x.kg) - 8).toFixed(1)}" text-anchor="${i === 0 ? 'start' : 'end'}" fill="#e5e7eb" font-size="9" font-weight="bold">${fmtNum(x.kg)}</text>` : ''}
+            ${(i === 0 || i === list.length - 1) ? `<text x="${getX(i).toFixed(1)}" y="${h - 6}" text-anchor="${i === 0 ? 'start' : 'end'}" fill="#9ca3af" font-size="8.5">${formatDisplayDate(x.date).slice(0, 5)}</text>` : ''}
+          `).join('')}
+        </svg>`;
+    }
+
+    // ---------- Darstellung ----------
+    function nutritionBar(label, value, target, unit, colorCls) {
+      const pct = target > 0 ? Math.min(100, Math.round(value / target * 100)) : 0;
+      return `
+        <div>
+          <div class="flex justify-between text-[11px] mb-1">
+            <span class="font-bold text-gray-200">${label}</span>
+            <span class="text-gray-400 tabular-nums"><strong class="text-white">${Math.round(value)}</strong> / ${target} ${unit}</span>
+          </div>
+          <div class="w-full bg-iosDark rounded-full h-2 overflow-hidden">
+            <div class="bar-fill ${colorCls} h-full rounded-full" style="width: ${pct}%"></div>
+          </div>
+        </div>`;
+    }
+
+    function renderNutritionTab() {
+      if (!nutritionDate) nutritionDate = formatDateISO(new Date());
+      const iso = nutritionDate;
+      const todayISO = formatDateISO(new Date());
+      const targets = getNutritionTargets(iso);
+      const sum = nutritionTotals(iso);
+      const day = getNutritionDay(iso);
+      $('nut-date').value = iso;
+      $('nut-goal').value = NUTRITION_GOALS[appSettings.nutritionGoal] ? appSettings.nutritionGoal : 'maintain';
+      $('nut-day-label').innerText = `${iso === todayISO ? 'Heute' : formatDisplayDate(iso)} · ${targets.training ? 'Trainingstag' : 'Ruhetag'}`;
+
+      // Kalorien-Ring
+      const ring = $('nut-ring');
+      const left = targets.kcal - sum.kcal;
+      ring.style.strokeDashoffset = RING_LEN * (1 - Math.min(1, sum.kcal / targets.kcal));
+      ring.style.stroke = left < -targets.kcal * 0.08 ? '#ff9f0a' : '#3b82f6';
+      $('nut-kcal-val').innerText = Math.round(sum.kcal);
+      $('nut-kcal-sub').innerText = left >= 0 ? `noch ${Math.round(left)} kcal` : `${Math.round(-left)} kcal drüber`;
+      $('nut-kcal-target').innerText = `Ziel ${targets.kcal} kcal`;
+      $('nut-bars').innerHTML =
+        nutritionBar('Protein', sum.p, targets.protein, 'g', 'bg-recoveryGreen')
+        + nutritionBar('Kohlenhydrate', sum.c, targets.carbs, 'g', 'bg-amber-400')
+        + nutritionBar('Fett', sum.f, targets.fat, 'g', 'bg-purple-400');
+
+      // Wasser
+      const waterPct = Math.min(100, Math.round(sum.water / targets.water * 100));
+      $('nut-water-val').innerText = `${fmtNum(sum.water / 1000)} / ${fmtNum(targets.water / 1000)} l`;
+      $('nut-water-bar').style.width = waterPct + '%';
+
+      // Favoriten
+      $('nut-favs').innerHTML = nutritionData.favorites.length
+        ? nutritionData.favorites.map(f => `
+            <span class="inline-flex items-stretch rounded-lg bg-iosDark border border-iosAccent/40 overflow-hidden whitespace-nowrap">
+              <button type="button" onclick="addFavoriteMeal('${f.id}')" class="px-2.5 py-1.5 text-[11px] font-bold text-iosAccent">+ ${esc(f.name)} <span class="font-medium text-gray-400">${f.p} g P</span></button>
+              <button type="button" onclick="deleteFavoriteMeal('${f.id}')" class="px-2 text-[11px] text-gray-500 border-l border-iosBorder">✕</button>
+            </span>`).join('')
+        : '<span class="text-[11px] text-gray-500 py-1.5">Noch keine Favoriten – beim Eintragen „Als Favorit merken“ anhaken.</span>';
+
+      // Mahlzeiten des Tages
+      $('nut-meals').innerHTML = day.meals.length
+        ? day.meals.map(m => `
+            <div class="p-2.5 rounded-xl bg-iosDark border border-iosBorder flex justify-between items-center gap-2">
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-white truncate">${esc(m.name)}</p>
+                <p class="text-[10px] text-gray-400">${m.kcal} kcal · <span class="text-recoveryGreen font-bold">${m.p} g Protein</span> · ${m.c} g KH · ${m.f} g Fett</p>
+              </div>
+              <button type="button" onclick="deleteMeal('${m.id}')" class="shrink-0 w-7 h-7 rounded-lg bg-iosCard border border-iosBorder text-xs text-gray-500">✕</button>
+            </div>`).join('')
+        : '<p class="text-xs text-gray-500">Noch nichts eingetragen.</p>';
+
+      // 7-Tage-Übersicht: Protein-Ziel erreicht?
+      let hits = 0;
+      $('nut-week').innerHTML = Array.from({ length: 7 }, (_, i) => {
+        const d = shiftISO(todayISO, i - 6);
+        const pct = Math.min(100, Math.round(nutritionTotals(d).p / getNutritionTargets(d).protein * 100));
+        if (pct >= 90) hits++;
+        const col = pct >= 90 ? 'bg-recoveryGreen' : (pct >= 60 ? 'bg-recoveryAmber' : 'bg-gray-600');
+        return `
+          <button type="button" onclick="setNutritionDate('${d}')" class="flex-1 flex flex-col items-center h-full justify-end">
+            <span class="text-[9px] font-bold text-gray-300 mb-1">${pct}%</span>
+            <div class="col-grow w-full max-w-[18px] rounded-t-md ${col}" style="height: ${Math.max(6, pct)}%; animation-delay: ${i * 35}ms"></div>
+            <span class="text-[9px] mt-1.5 ${d === iso ? 'text-white font-bold' : 'text-gray-400'}">${WD_SHORT[new Date(d + 'T12:00:00').getDay()]}</span>
+          </button>`;
+      }).join('');
+      $('nut-week-label').innerText = `Protein-Ziel an ${hits} von 7 Tagen erreicht`;
+
+      renderNutritionHint(targets, sum);
+      renderFoodResults();
+
+      // Körpergewicht
+      const weights = nutritionData.weights;
+      const latest = weights[weights.length - 1];
+      $('bw-input').placeholder = latest ? `zuletzt ${fmtNum(latest.kg)}` : 'z.B. 82,4';
+      $('bw-goal').value = appSettings.targetWeight ? fmtNum(appSettings.targetWeight) : '';
+      const stats = [];
+      if (latest) {
+        const avgNow = weightAverage(shiftISO(latest.date, -6), latest.date);
+        const avgPrev = weightAverage(shiftISO(latest.date, -13), shiftISO(latest.date, -7));
+        stats.push(`Aktuell <strong class="text-white">${fmtNum(latest.kg)} kg</strong>`);
+        stats.push(`7-Tage-Schnitt <strong class="text-white">${fmtNum(Math.round(avgNow * 10) / 10)} kg</strong>`);
+        if (avgPrev !== null) {
+          const diff = Math.round((avgNow - avgPrev) * 10) / 10;
+          stats.push(`<span class="${diff === 0 ? 'text-gray-300' : 'text-iosAccent'} font-bold">${diff > 0 ? '+' : ''}${fmtNum(diff)} kg pro Woche</span>`);
+        }
+        if (appSettings.targetWeight) {
+          const rest = Math.round((appSettings.targetWeight - latest.kg) * 10) / 10;
+          stats.push(rest === 0 ? '<span class="text-recoveryGreen font-bold">Ziel erreicht 🎉</span>' : `noch ${fmtNum(Math.abs(rest))} kg bis zum Ziel`);
+        }
+      }
+      $('bw-stats').innerHTML = stats.length ? stats.join(' · ') : 'Trage dein Gewicht am besten morgens nach dem Aufstehen ein – immer zur gleichen Zeit.';
+      renderWeightChart();
+      $('bw-list').innerHTML = [...weights].reverse().slice(0, 5).map(x => `
+        <div class="flex justify-between items-center text-xs py-1.5 border-b border-iosBorder">
+          <span class="text-gray-300">${formatDisplayDate(x.date)}</span>
+          <span class="flex items-center gap-2"><strong class="text-white tabular-nums">${fmtNum(x.kg)} kg</strong>
+            <button type="button" onclick="deleteBodyWeight('${x.date}')" class="text-gray-500 px-1">✕</button></span>
+        </div>`).join('');
+    }
+
+    // ---------- Lebensmittel-Liste (Richtwerte pro 100 g: kcal, Protein, Kohlenhydrate, Fett; g = übliche Portion) ----------
+    const FOODS = [
+      { n: 'Hähnchenbrust', kcal: 110, p: 23, c: 0, f: 1.5, g: 150 },
+      { n: 'Putenbrust', kcal: 107, p: 24, c: 0, f: 1, g: 150 },
+      { n: 'Rinderhack (mager)', kcal: 170, p: 21, c: 0, f: 9, g: 150 },
+      { n: 'Lachs', kcal: 200, p: 20, c: 0, f: 13, g: 150 },
+      { n: 'Thunfisch (Dose, eigener Saft)', kcal: 110, p: 25, c: 0, f: 1, g: 130 },
+      { n: 'Ei (1 Stück ≈ 60 g)', kcal: 150, p: 13, c: 1, f: 11, g: 60 },
+      { n: 'Magerquark', kcal: 67, p: 12, c: 4, f: 0.3, g: 250 },
+      { n: 'Skyr', kcal: 63, p: 11, c: 4, f: 0.2, g: 200 },
+      { n: 'Hüttenkäse', kcal: 100, p: 12, c: 3, f: 4.5, g: 200 },
+      { n: 'Joghurt natur (3,5 %)', kcal: 65, p: 4, c: 5, f: 3.5, g: 200 },
+      { n: 'Milch (1,5 %)', kcal: 47, p: 3.4, c: 4.9, f: 1.5, g: 250 },
+      { n: 'Whey-Protein (Pulver)', kcal: 380, p: 78, c: 7, f: 6, g: 30 },
+      { n: 'Käse (Gouda)', kcal: 350, p: 25, c: 0, f: 28, g: 30 },
+      { n: 'Tofu', kcal: 125, p: 14, c: 2, f: 7, g: 150 },
+      { n: 'Linsen (gekocht)', kcal: 115, p: 9, c: 20, f: 0.4, g: 200 },
+      { n: 'Kidneybohnen', kcal: 110, p: 8, c: 17, f: 0.5, g: 150 },
+      { n: 'Reis (gekocht)', kcal: 130, p: 2.7, c: 28, f: 0.3, g: 200 },
+      { n: 'Nudeln (gekocht)', kcal: 150, p: 5, c: 30, f: 1, g: 200 },
+      { n: 'Kartoffeln (gekocht)', kcal: 75, p: 2, c: 16, f: 0.1, g: 250 },
+      { n: 'Haferflocken', kcal: 370, p: 13, c: 59, f: 7, g: 60 },
+      { n: 'Vollkornbrot (1 Scheibe ≈ 50 g)', kcal: 220, p: 8, c: 40, f: 2, g: 50 },
+      { n: 'Brötchen', kcal: 270, p: 9, c: 53, f: 1.5, g: 60 },
+      { n: 'Banane', kcal: 90, p: 1, c: 21, f: 0.3, g: 120 },
+      { n: 'Apfel', kcal: 52, p: 0.3, c: 12, f: 0.2, g: 150 },
+      { n: 'Beeren', kcal: 45, p: 1, c: 8, f: 0.4, g: 125 },
+      { n: 'Brokkoli', kcal: 34, p: 3, c: 4, f: 0.4, g: 200 },
+      { n: 'Gemüse (gemischt)', kcal: 30, p: 2, c: 5, f: 0.3, g: 200 },
+      { n: 'Avocado', kcal: 160, p: 2, c: 4, f: 15, g: 80 },
+      { n: 'Olivenöl (1 EL ≈ 10 g)', kcal: 884, p: 0, c: 0, f: 100, g: 10 },
+      { n: 'Butter', kcal: 740, p: 0.7, c: 0.6, f: 82, g: 10 },
+      { n: 'Erdnussbutter', kcal: 600, p: 25, c: 12, f: 50, g: 20 },
+      { n: 'Nüsse (gemischt)', kcal: 600, p: 18, c: 10, f: 53, g: 30 },
+      { n: 'Honig', kcal: 300, p: 0, c: 80, f: 0, g: 15 },
+      { n: 'Reiswaffel (1 Stück ≈ 10 g)', kcal: 385, p: 8, c: 81, f: 3, g: 10 },
+      { n: 'Proteinriegel', kcal: 370, p: 33, c: 30, f: 13, g: 55 },
+      { n: 'Pizza (Margherita)', kcal: 250, p: 10, c: 30, f: 10, g: 350 },
+      { n: 'Döner', kcal: 215, p: 12, c: 20, f: 10, g: 350 },
+      { n: 'Dunkle Schokolade', kcal: 550, p: 7, c: 35, f: 40, g: 25 },
+      { n: 'Orangensaft', kcal: 45, p: 0.7, c: 10, f: 0.2, g: 250 },
+      { n: 'Cola', kcal: 42, p: 0, c: 10.6, f: 0, g: 330 }
+    ];
+    let selectedFoodIdx = null;
+
+    const foodMacros = (food, grams) => ({
+      kcal: Math.round(food.kcal * grams / 100),
+      p: Math.round(food.p * grams / 100),
+      c: Math.round(food.c * grams / 100),
+      f: Math.round(food.f * grams / 100)
+    });
+
+    function renderFoodResults() {
+      const box = $('fd-results');
+      if (!box) return;
+      const q = ($('fd-search').value || '').toLowerCase().trim();
+      const hits = FOODS.map((food, i) => ({ food, i })).filter(x => !q || x.food.n.toLowerCase().includes(q)).slice(0, q ? 8 : 6);
+      box.innerHTML = hits.map(x => `
+        <button type="button" onclick="selectFood(${x.i})" class="px-2.5 py-1.5 rounded-lg border text-[11px] font-bold whitespace-nowrap ${x.i === selectedFoodIdx ? 'bg-white text-black border-white' : 'bg-iosDark border-iosBorder text-gray-200'}">${esc(x.food.n)}</button>
+      `).join('') || '<span class="text-[11px] text-gray-500 py-1.5">Nichts gefunden – trage die Werte unten selbst ein.</span>';
+    }
+
+    function selectFood(idx) {
+      selectedFoodIdx = idx;
+      $('fd-grams').value = FOODS[idx].g;
+      $('fd-selected').classList.remove('hidden');
+      haptic('light');
+      renderFoodResults();
+      updateFoodCalc();
+    }
+
+    function updateFoodCalc() {
+      if (selectedFoodIdx === null) return;
+      const food = FOODS[selectedFoodIdx];
+      const m = foodMacros(food, parseNum($('fd-grams').value));
+      $('fd-calc').innerHTML = `<strong class="text-white">${esc(food.n)}</strong><br>${m.kcal} kcal · <span class="text-recoveryGreen font-bold">${m.p} g Protein</span> · ${m.c} g KH · ${m.f} g Fett`;
+    }
+
+    function addSelectedFood() {
+      if (selectedFoodIdx === null) return;
+      const food = FOODS[selectedFoodIdx];
+      const grams = Math.round(parseNum($('fd-grams').value));
+      if (!(grams > 0)) { alertUser('Bitte eine Menge in Gramm eintragen'); return; }
+      const name = `${food.n.replace(/\s*\(.*\)$/, '')} (${grams} g)`;
+      getNutritionDay(nutritionDate, true).meals.push({ id: Date.now().toString(36), name, ...foodMacros(food, grams) });
+      selectedFoodIdx = null;
+      $('fd-selected').classList.add('hidden');
+      $('fd-search').value = '';
+      haptic('medium');
+      afterNutritionChanged();
+      alertUser(`${name} eingetragen`);
+    }
+
+    // Alle Mahlzeiten vom Vortag übernehmen (praktisch, wenn man oft ähnlich isst)
+    function copyMealsFromYesterday() {
+      const prev = getNutritionDay(shiftISO(nutritionDate, -1));
+      if (!prev.meals.length) { alertUser('Am Vortag ist nichts eingetragen'); return; }
+      const day = getNutritionDay(nutritionDate, true);
+      prev.meals.forEach((m, i) => day.meals.push({ ...m, id: Date.now().toString(36) + i }));
+      haptic('medium');
+      afterNutritionChanged();
+      alertUser(`${prev.meals.length} Mahlzeiten vom Vortag übernommen`);
+    }
+
+    // Tipp: Wie lässt sich die Protein-Lücke des Tages am einfachsten schließen?
+    function renderNutritionHint(targets, sum) {
+      const el = $('nut-hint');
+      if (!el) return;
+      const missing = targets.protein - sum.p;
+      if (sum.kcal === 0 && sum.p === 0) {
+        el.innerText = `Heute brauchst du etwa ${targets.protein} g Protein – verteilt auf 3–4 Mahlzeiten sind das je ${Math.round(targets.protein / 4)}–${Math.round(targets.protein / 3)} g.`;
+      } else if (missing > 15) {
+        const quark = Math.min(500, Math.round(missing / 0.12 / 50) * 50);
+        const chicken = Math.min(400, Math.round(missing / 0.23 / 25) * 25);
+        el.innerHTML = `Dir fehlen noch <strong class="text-recoveryGreen">${Math.round(missing)} g Protein</strong>. Das wären zum Beispiel ${quark} g Magerquark oder ${chicken} g Hähnchenbrust${missing > 35 ? ' – oder ein Shake plus eine normale Mahlzeit' : ''}.`;
+      } else if (missing > 0) {
+        el.innerHTML = `Fast geschafft: nur noch <strong class="text-recoveryGreen">${Math.round(missing)} g Protein</strong> bis zum Tagesziel.`;
+      } else {
+        el.innerHTML = '<strong class="text-recoveryGreen">Protein-Ziel erreicht ✓</strong> – der Rest des Tages darf sich nach Hunger und Kalorien richten.';
+      }
+    }
+
+    // ==================== WOCHENRÜCKBLICK (Analyse-Tab) ====================
+    let weekReviewOffset = 0;   // 0 = laufende Woche, -1 = letzte Woche …
+
+    function collectWeekStats(mondayISO) {
+      const s = { days: [], sessions: 0, gym: 0, cardio: 0, sport: 0, volume: 0, runKm: 0, sportLoad: 0, prs: [],
+        scoreSum: 0, sleepSum: 0, nights: 0, proteinHits: 0, foodDays: 0, kcalSum: 0, kcalTargetSum: 0 };
+      for (let i = 0; i < 7; i++) {
+        const iso = shiftISO(mondayISO, i);
+        s.days.push(iso);
+        const log = workoutLogs[iso];
+        if (log && log.type !== 'rest') {
+          s.sessions++;
+          const kind = planKind(log.type);
+          if (kind === 'gym') {
+            s.gym++;
+            s.volume += workoutVolume(log);
+            if (log.exercises) computeWorkoutPRs(iso, log).forEach(p => s.prs.push(p.name));
+          } else if (kind === 'sport') {
+            s.sport++;
+            s.sportLoad += computeSportLoad(log.type, log.durationMin, log.mode, log.avgHr).load;
+          } else {
+            s.cardio++;
+            if (log.type === 'run') s.runKm += log.distanceKm || 0;
+          }
+        }
+        const night = sleepHistory.find(n => n.date === iso);
+        if (night) { s.nights++; s.scoreSum += night.score; s.sleepSum += night.sleep || 0; }
+        const food = nutritionTotals(iso);
+        if (food.kcal > 0 || food.p > 0) {
+          const target = getNutritionTargets(iso);
+          s.foodDays++;
+          s.kcalSum += food.kcal;
+          s.kcalTargetSum += target.kcal;
+          if (food.p >= target.protein * 0.9) s.proteinHits++;
+        }
+      }
+      s.weightAvg = weightAverage(s.days[0], s.days[6]);
+      return s;
+    }
+
+    function shiftWeekReview(delta) {
+      weekReviewOffset = Math.min(0, weekReviewOffset + delta);
+      haptic('light');
+      renderWeekReview();
+    }
+
+    function renderWeekReview() {
+      const box = $('week-review');
+      if (!box) return;
+      const today = new Date();
+      today.setHours(12, 0, 0, 0);
+      today.setDate(today.getDate() - ((today.getDay() + 6) % 7) + weekReviewOffset * 7);
+      const mondayISO = formatDateISO(today);
+      const cur = collectWeekStats(mondayISO);
+      const prev = collectWeekStats(shiftISO(mondayISO, -7));
+
+      $('week-review-label').innerText = weekReviewOffset === 0 ? 'Diese Woche' : (weekReviewOffset === -1 ? 'Letzte Woche' : `Woche ab ${formatDisplayDate(mondayISO)}`);
+      $('week-review-range').innerText = `${formatDisplayDate(cur.days[0]).replace(/\d{4}$/, '')} – ${formatDisplayDate(cur.days[6])}`;
+      $('week-review-next').disabled = weekReviewOffset === 0;
+
+      const delta = (now, before, unit, goodWhenUp = true) => {
+        if (!before || !now) return '';
+        const d = Math.round((now - before) / before * 100);
+        if (d === 0) return '';
+        const good = (d > 0) === goodWhenUp;
+        return `<span class="${good ? 'text-recoveryGreen' : 'text-recoveryAmber'} font-bold">${d > 0 ? '+' : ''}${d} %${unit}</span>`;
+      };
+      const tile = (label, value, sub) => `
+        <div class="bg-iosDark p-2.5 rounded-xl border border-iosBorder">
+          <span class="text-[9px] text-gray-400 uppercase font-semibold block">${label}</span>
+          <span class="text-sm font-black text-white mt-0.5 block tabular-nums">${value}</span>
+          <span class="text-[10px] text-gray-400 block leading-snug">${sub || '&nbsp;'}</span>
+        </div>`;
+
+      const avgScore = cur.nights ? Math.round(cur.scoreSum / cur.nights) : null;
+      const avgSleep = cur.nights ? cur.sleepSum / cur.nights : null;
+      const prevScore = prev.nights ? prev.scoreSum / prev.nights : null;
+      const weightDiff = (cur.weightAvg !== null && prev.weightAvg !== null) ? Math.round((cur.weightAvg - prev.weightAvg) * 10) / 10 : null;
+      const parts = [];
+      if (cur.gym) parts.push(`${cur.gym}× Gym`);
+      if (cur.cardio) parts.push(`${cur.cardio}× Ausdauer`);
+      if (cur.sport) parts.push(`${cur.sport}× Sport`);
+
+      $('week-review-tiles').innerHTML =
+        tile('Einheiten', cur.sessions, parts.join(' · ') || 'noch keine')
+        + tile('Gym-Volumen', cur.volume ? `${Math.round(cur.volume).toLocaleString('de-DE')} kg` : '–', delta(cur.volume, prev.volume, ' zur Vorwoche'))
+        + tile('Ø Erholung', avgScore !== null ? avgScore : '–', avgScore !== null ? `${cur.nights} Check-ins ${delta(avgScore, prevScore, '')}` : 'keine Check-ins')
+        + tile('Ø Schlaf', avgSleep !== null ? `${fmtNum(Math.round(avgSleep * 10) / 10)} h` : '–', avgSleep !== null ? (avgSleep >= 7.5 ? 'im Zielbereich' : 'unter 7,5 h') : '')
+        + tile('Protein-Ziel', cur.foodDays ? `${cur.proteinHits} / ${cur.foodDays} Tage` : '–', cur.foodDays ? `Ø ${Math.round(cur.kcalSum / cur.foodDays)} kcal` : 'nichts eingetragen')
+        + tile('Gewicht', cur.weightAvg !== null ? `${fmtNum(Math.round(cur.weightAvg * 10) / 10)} kg` : '–', weightDiff !== null ? `${weightDiff > 0 ? '+' : ''}${fmtNum(weightDiff)} kg zur Vorwoche` : (cur.weightAvg !== null ? 'Wochenschnitt' : 'nicht gewogen'));
+
+      // Fazit des Coachs
+      const notes = [];
+      if (cur.prs.length) notes.push(`🏆 ${cur.prs.length === 1 ? 'Ein neuer Bestwert' : cur.prs.length + ' neue Bestwerte'}: ${[...new Set(cur.prs)].slice(0, 3).map(esc).join(', ')}.`);
+      if (cur.sportLoad > 0 || cur.runKm > 0) notes.push(`${cur.runKm > 0 ? `${fmtNum(cur.runKm)} km gelaufen` : ''}${cur.runKm > 0 && cur.sportLoad > 0 ? ' und ' : ''}${cur.sportLoad > 0 ? `Sport-Belastung von ${cur.sportLoad} Punkten` : ''}.`);
+      if (cur.sessions === 0) notes.push('Noch keine Einheit geloggt – die Woche ist ein unbeschriebenes Blatt.');
+      else if (cur.sessions >= 6) notes.push('Sehr viele Einheiten: Achte darauf, dass mindestens ein voller Ruhetag dabei ist.');
+      if (avgScore !== null && avgScore < 50) notes.push(`Die Erholung war mit Ø ${avgScore} niedrig. Nächste Woche lieber eine Einheit streichen oder früher schlafen, statt Volumen draufzulegen.`);
+      else if (avgScore !== null && avgScore >= 70 && cur.sessions >= 3) notes.push(`Starke Erholung (Ø ${avgScore}) bei ${cur.sessions} Einheiten – gute Basis, um nächste Woche Gewicht oder Wiederholungen zu steigern.`);
+      if (avgSleep !== null && avgSleep < 7) notes.push(`Mit Ø ${fmtNum(Math.round(avgSleep * 10) / 10)} h Schlaf verschenkst du Fortschritt: 30 Minuten früher ins Bett bringen meist mehr als jedes Supplement.`);
+      if (cur.foodDays >= 3 && cur.proteinHits / cur.foodDays < 0.5) notes.push(`Das Protein-Ziel hast du nur an ${cur.proteinHits} von ${cur.foodDays} Tagen erreicht – ein fester Quark oder Shake pro Tag schließt die Lücke.`);
+      if (weightDiff !== null && Math.abs(weightDiff) >= 0.3) {
+        const goal = appSettings.nutritionGoal || 'maintain';
+        const fits = (goal === 'cut' && weightDiff < 0) || (goal === 'bulk' && weightDiff > 0);
+        notes.push(`Gewicht ${weightDiff > 0 ? '+' : ''}${fmtNum(weightDiff)} kg zur Vorwoche${goal === 'maintain' ? ' – bei Ziel „Halten“ die Kalorien leicht anpassen, falls sich der Trend fortsetzt.' : (fits ? ' – passt zu deinem Ziel.' : ' – das läuft gegen dein Ziel, prüfe deine Kalorien.')}`);
+      }
+      $('week-review-notes').innerHTML = notes.map(n => `<p>${n}</p>`).join('') || '<p>Trage Training, Check-ins und Mahlzeiten ein – dann zieht der Coach hier ein Fazit.</p>';
+    }
+
+    // Kleine Karte auf dem Heute-Tab
+    function renderNutritionMini() {
+      const box = $('nut-mini');
+      if (!box) return;
+      const todayISO = formatDateISO(new Date());
+      const targets = getNutritionTargets(todayISO);
+      const sum = nutritionTotals(todayISO);
+      box.innerHTML =
+        nutritionBar('Protein', sum.p, targets.protein, 'g', 'bg-recoveryGreen')
+        + nutritionBar('Kalorien', sum.kcal, targets.kcal, 'kcal', 'bg-iosAccent')
+        + nutritionBar('Wasser', sum.water, targets.water, 'ml', 'bg-sky-400');
+    }
+
     // ==================== APP-LEBENSZYKLUS & START ====================
     let lastSeenDay = '';
 
@@ -5620,6 +6591,7 @@
         lastSeenDay = today;
         selectedDateStr = today;
         if (!readDraft()) gtCurrentDate = today;
+        nutritionDate = today;
         $('checkin-date-picker').value = today;
         refreshUI();
         $('header-subtitle').innerText = TAB_META[currentTab].sub();
@@ -5653,6 +6625,7 @@
       populateTrendSelectDropdown();
       populateWorkoutTypeSelect();
       initSheetDrag();
+      initSwipeNavigation();
       loadGymTrackerForDate(gtCurrentDate);
       dirtyTabs.delete('gymtracker');
       renderStravaSettings();
